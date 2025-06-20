@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { AuthFlow } from "@/features/auth/types";
+import { AuthFlow } from "@/lib/types";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { TriangleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
