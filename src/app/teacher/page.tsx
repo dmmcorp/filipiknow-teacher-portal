@@ -1,9 +1,8 @@
-import React from 'react'
+import React from "react";
+import { TeacherDashboard } from "./_components/teacher-dashboard";
 
 function Page() {
-  return (
-    <div>Page</div>
-  )
+  return <TeacherDashboard />;
 }
 
-export default Page
+export default Page;

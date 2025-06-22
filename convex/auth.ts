@@ -8,7 +8,10 @@ const CustomPassword = Password({
       fname: params.fname as string,
       lname: params.lname as string,
       mname: params.mname as string,
+      image: params.image !== undefined ? params.image as string : null,
       role: params.role as "teacher" | "student",
+      licenseNumber: params.licenseNumber as string,
+      gradeLevel: params.gradeLevel as string,
       isActive: true,
     };
   },

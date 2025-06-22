@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 import { Checkbox } from "../ui/checkbox";
+import { useRouter } from "next/navigation";
 
 const REMEMBER_EMAIL_KEY = "filipiknow-remember-email";
 
@@ -25,8 +26,7 @@ export const LoginCard = ({
   const [error, setError] = useState("");
   const { signIn } = useAuthActions();
   const [rememberMe, setRememberMe] = useState(false);
-
-  // const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBER_EMAIL_KEY);
@@ -151,7 +151,7 @@ export const LoginCard = ({
             </div>
 
             <Button
-              className="w-full bg-background"
+              className="w-full"
               type="submit"
               size="lg"
               disabled={pending}
@@ -161,11 +161,15 @@ export const LoginCard = ({
 
             <Separator />
 
-            <div>
+            <div className="flex items-center">
               Don&apos;t have an account yet?{" "}
-              <Link href="/register" className="text-blue-600">
+              <Button
+                onClick={() => setState("signUp")}
+                className="text-blue-600"
+                variant="ghost"
+              >
                 Register Here
-              </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

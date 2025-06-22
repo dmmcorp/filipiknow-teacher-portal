@@ -1,31 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useConvexAuth } from "convex/react";
 import { useCheckRole } from "@/hooks/use-check-role";
+import { useConvexAuth } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-// Component to check the user's role and redirect them to the appropriate page
-export function RoleCheck() {
+// Only allow users with the "teacher" role, otherwise redirect to "/"
+export function ClientRoleGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+  const { data: role, isLoading: isRoleLoading } = useCheckRole();
+  const [allowed, setAllowed] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth(); // Get authentication status and loading state
-  const { data: role, isLoading: isRoleLoading } = useCheckRole(); // Fetch the user's role and loading state
 
   useEffect(() => {
-    // Redirect the user based on their role once authentication and role data are loaded
-    if (!isAuthLoading && !isRoleLoading && isAuthenticated) {
-      switch (role) {
-        case "teacher":
-          router.push("/teacher"); // Redirect to admin dashboard
-          break;
-        case "student":
-          router.push("/student"); // Redirect to teacher dashboard
-          break;
-        default:
-          router.push("/"); // Redirect to the default page if no role matches
+    if (!isAuthLoading && !isRoleLoading) {
+      if (!isAuthenticated || role !== "teacher") {
+        router.replace("/");
+      } else {
+        setAllowed(true);
       }
     }
-  }, [isAuthenticated, isAuthLoading, isRoleLoading, role, router]); // Dependencies for the effect
+  }, [isAuthenticated, isAuthLoading, isRoleLoading, role, router]);
 
-  return null; // This component does not render any UI
+  if (isAuthLoading || isRoleLoading) return null;
+  if (!allowed) return null;
+
+  return <>{children}</>;
 }
