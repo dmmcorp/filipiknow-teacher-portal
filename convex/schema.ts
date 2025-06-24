@@ -12,7 +12,13 @@ const schema = defineSchema({
     email: v.string(),
     role: v.union(v.literal("teacher"), v.literal("student")),
     emailVerified: v.optional(v.boolean()),
-    licenseNumber: v.string(),
+    licenseNumber: v.optional(v.string()),
+    gradeLevel: v.optional(v.string()),
+  }),
+
+  students: defineTable({
+    userId: v.id("users"),
+    section: v.string(),
     gradeLevel: v.string(),
   }),
 });
