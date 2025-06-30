@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { createAccount } from "./users";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -123,6 +123,47 @@ http.route({
       return new Response(
         JSON.stringify({
           error: error.message || "Failed to get user info",
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+  }),
+});
+
+// Sign out
+http.route({
+  path: "/api/auth/signout",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      // Use the built-in Convex Auth signOut
+      await ctx.runAction(api.auth.signOut);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Signed out successfully",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    } catch (error: any) {
+      console.error("Signout error:", error);
+
+      return new Response(
+        JSON.stringify({
+          error: error.message || "Failed to sign out",
         }),
         {
           status: 500,

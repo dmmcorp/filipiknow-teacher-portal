@@ -21,7 +21,7 @@ const schema = defineSchema({
     userId: v.id("users"),
     section: v.string(),
     gradeLevel: v.string(),
-  }),
+  }).index("by_userId", ["userId"]),
 
   dialogues: defineTable({
     chapter: v.number(), // e.g. 1
