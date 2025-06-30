@@ -14,6 +14,7 @@ const schema = defineSchema({
     emailVerified: v.optional(v.boolean()),
     licenseNumber: v.optional(v.string()),
     gradeLevel: v.optional(v.string()),
+    certification: v.optional(v.string()),
   }),
 
   students: defineTable({

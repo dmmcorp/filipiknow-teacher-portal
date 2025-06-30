@@ -47,6 +47,7 @@ export const RegisterCard = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
+  const [certification, setCertification] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { signIn } = useAuthActions();
   const router = useRouter();
@@ -137,7 +138,8 @@ export const RegisterCard = ({
         body: file,
       });
 
-      //   const { storageId } = await result.json();
+      const { storageId } = await result.json();
+      setCertification(storageId);
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Failed to upload file");
@@ -171,6 +173,12 @@ export const RegisterCard = ({
       return;
     }
 
+    if (!certification) {
+      setError("Please upload your certification file");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       await signIn("password", {
         email,
@@ -181,6 +189,7 @@ export const RegisterCard = ({
         role: "teacher",
         licenseNumber,
         gradeLevel,
+        certification,
         flow: "signUp",
       });
       setError("");

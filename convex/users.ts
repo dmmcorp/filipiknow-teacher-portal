@@ -3,6 +3,7 @@ import {
   httpAction,
   internalAction,
   internalQuery,
+  mutation,
   query,
 } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
@@ -122,3 +123,15 @@ export const createAccount = httpAction(async (ctx, request) => {
     }
   );
 });
+
+export const editAccountInformation = mutation({
+  args: {
+    userId: v.id("users"),
+    fname: v.string(),
+    lname: v.string(),
+    licenseNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+
+  }
+})
