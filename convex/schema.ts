@@ -21,6 +21,17 @@ const schema = defineSchema({
     section: v.string(),
     gradeLevel: v.string(),
   }),
+
+  dialogues: defineTable({
+    chapter: v.number(), // e.g. 1
+    level: v.number(), // e.g. 2
+    scenes: v.array(
+      v.object({
+        speaker: v.string(),
+        text: v.string(),
+      })
+    ),
+  }),
 });
 
 export default schema;
