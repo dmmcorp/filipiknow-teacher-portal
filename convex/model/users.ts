@@ -1,6 +1,7 @@
 import { createAccount } from "@convex-dev/auth/server";
 import { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
+import { api, internal } from "../_generated/api";
 
 export async function createUser(
   ctx: ActionCtx,
@@ -9,9 +10,11 @@ export async function createUser(
     lname: string;
     email: string;
     password: string;
+    gradeLevel: string;
+    section: string; // Section is required
   }
 ) {
-  const { fname, lname, email, password } = userData;
+  const { fname, lname, email, password, gradeLevel, section } = userData;
 
   const role = "student";
 
@@ -29,6 +32,14 @@ export async function createUser(
       isActive: true,
     },
   });
+
+  if (create.user._id) {
+    await ctx.runMutation(internal.students.createStudent, {
+      userId: create.user._id,
+      section,
+      gradeLevel,
+    });
+  }
 
   //   if (!create?.user._id) throw new ConvexError("Failed to create account");
 

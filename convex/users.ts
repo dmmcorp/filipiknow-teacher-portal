@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { createUser } from "./model/users";
 import { signIn } from "./auth";
 
@@ -68,14 +68,18 @@ export const createStudentAccount = internalAction({
     email: v.string(),
     image: v.optional(v.string()),
     password: v.string(),
+    gradeLevel: v.string(),
+    section: v.string(),
   },
   handler: async (ctx, args) => {
     try {
-      await createUser(ctx, {
+      const result = await createUser(ctx, {
         fname: args.fname,
         lname: args.lname,
         email: args.email,
         password: args.password,
+        gradeLevel: args.gradeLevel,
+        section: args.section,
       });
       // Automatically sign in the user after account creation
       console.log(args.email);
@@ -89,7 +93,8 @@ export const createStudentAccount = internalAction({
 // HTTP action to create a new account
 // This function handles the HTTP request to create a new user account
 export const createAccount = httpAction(async (ctx, request) => {
-  const { fname, lname, mname, email, password } = await request.json();
+  const { fname, lname, email, password, gradeLevel, section } =
+    await request.json();
   const existingEmail = await ctx.runQuery(internal.users.checkExistingEmail, {
     email,
   });
@@ -100,22 +105,35 @@ export const createAccount = httpAction(async (ctx, request) => {
       { status: 400 }
     );
   }
-  if (fname || lname || mname || email || password) {
+  if (fname || lname || email || password || gradeLevel || section) {
     await ctx.runAction(internal.users.createStudentAccount, {
       fname,
       lname,
       email,
       password,
+      gradeLevel,
+      section,
     });
   }
+
+  const result = await ctx.runAction(api.auth.signIn, {
+    provider: "password",
+    params: {
+      email,
+      password,
+      flow: "signUp",
+    },
+  });
   return new Response(
     JSON.stringify({
       message: "Account created successfully",
       fname,
       lname,
-      mname,
       email,
       password,
+      gradeLevel,
+      section,
+      result,
     }),
     {
       status: 201,
