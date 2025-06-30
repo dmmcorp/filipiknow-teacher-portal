@@ -12,6 +12,7 @@ const CustomPassword = Password({
       role: params.role as "teacher" | "student",
       licenseNumber: params.licenseNumber as string,
       gradeLevel: params.gradeLevel as string,
+      certification: params.certification !== undefined ? (params.certification as string) : null,
       isActive: true,
     };
   },

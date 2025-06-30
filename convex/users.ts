@@ -3,11 +3,13 @@ import {
   httpAction,
   internalAction,
   internalQuery,
+  mutation,
   query,
 } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
+import { ConvexError, v } from "convex/values";
 import { createUser } from "./model/users";
 import { signIn } from "./auth";
 
@@ -140,3 +142,37 @@ export const createAccount = httpAction(async (ctx, request) => {
     }
   );
 });
+
+export const editAccountInformation = mutation({
+  args: {
+    userId: v.id("users"),
+    fname: v.optional(v.string()),
+    lname: v.optional(v.string()),
+    licenseNumber: v.optional(v.string()),
+    certification: v.optional(v.string()),
+    email: v.optional(v.string()),
+    image: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new ConvexError("Unauthorized")
+    }
+
+    const user = await ctx.db.get(userId)
+    if (!user) {
+      throw new ConvexError("User not found")
+    }
+
+    const updateFields: Record<string, string | undefined> = {};
+
+    if (args.fname !== undefined) updateFields.fname = args.fname;
+    if (args.lname !== undefined) updateFields.lname = args.lname;
+    if (args.licenseNumber !== undefined) updateFields.licenseNumber = args.licenseNumber;
+    if (args.certification !== undefined) updateFields.certification = args.certification;
+    if (args.email !== undefined) updateFields.email = args.email;
+    if (args.image !== undefined) updateFields.image = args.image;
+
+    await ctx.db.patch(args.userId, updateFields);
+  }
+})
