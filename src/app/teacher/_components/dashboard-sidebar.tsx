@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   Home,
@@ -8,16 +9,19 @@ import {
   FileQuestion,
   Settings,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export const Sidebar = () => {
   const [isClassOpen, setIsClassOpen] = useState(false);
+  const pathname = usePathname();
 
   const menuItems = [
     {
       icon: Home,
       label: "Dashboard",
-      active: true,
+      href: "/teacher",
+      active: pathname === "/teacher",
     },
     {
       icon: BookOpen,
@@ -29,10 +33,14 @@ export const Sidebar = () => {
     {
       icon: FileQuestion,
       label: "Quiz",
+      href: "/teacher/quizzes",
+      active: pathname === "/teacher/quizzes",
     },
     {
       icon: Settings,
       label: "Settings",
+      href: "/teacher/settings",
+      active: pathname === "/teacher/settings",
     },
   ];
 
@@ -48,28 +56,45 @@ export const Sidebar = () => {
         <div className="space-y-2">
           {menuItems.map((item, index) => (
             <div key={index}>
-              <button
-                onClick={item.onClick}
-                className={cn(
-                  "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
-                  item.active
-                    ? "bg-gray-100 text-gray-900 font-medium"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </div>
-                {item.hasDropdown && (
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform",
-                      item.isOpen && "rotate-180"
-                    )}
-                  />
-                )}
-              </button>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    item.active
+                      ? "bg-gray-100 text-gray-900 font-medium"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </div>
+                </Link>
+              ) : (
+                <button
+                  onClick={item.onClick}
+                  className={cn(
+                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    item.active
+                      ? "bg-gray-100 text-gray-900 font-medium"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.hasDropdown && (
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 transition-transform",
+                        item.isOpen && "rotate-180"
+                      )}
+                    />
+                  )}
+                </button>
+              )}
 
               {/* Dropdown content for Class */}
               {item.hasDropdown && item.isOpen && (
