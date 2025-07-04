@@ -34,10 +34,16 @@ export async function createUser(
   });
 
   if (create.user._id) {
-    await ctx.runMutation(internal.students.createStudent, {
+    const studentId = await ctx.runMutation(internal.students.createStudent, {
       userId: create.user._id,
       section,
       gradeLevel,
+    });
+    if (!studentId) {
+      throw new ConvexError("Failed to create student information");
+    }
+    await ctx.runMutation(internal.progress.createProgress, {
+      studentId: studentId,
     });
   }
 

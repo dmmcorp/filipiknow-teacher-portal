@@ -3,17 +3,38 @@ import { auth } from "./auth";
 import { createAccount } from "./users";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { getStudentInfoAndProgress } from "./students";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { getDialogue } from "./dialogues";
 
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
+// This route handles the creation of a new user account.
+// It checks if the user already exists and creates a new account if not.
 http.route({
   path: "/createAccount",
   method: "POST",
   handler: createAccount,
 });
 
+http.route({
+  path: "/getDialogue",
+  method: "GET",
+  handler: getDialogue,
+});
+
+// This route retrieves student information and progress based on the user ID provided in the request body.
+// It is used to get the student details for a specific user.
+http.route({
+  path: "/getStudentInfoAndProgress",
+  method: "POST",
+  handler: getStudentInfoAndProgress,
+});
+
+// Sign in route
+// This route handles user sign in
 http.route({
   path: "/api/auth/signin",
   method: "POST",
@@ -46,11 +67,15 @@ http.route({
           flow: "signIn",
         },
       });
-
+      const userId = await ctx.runQuery(internal.users.getUserIdByEmail, {
+        email,
+      });
+      console.log("userData:", userId);
       return new Response(
         JSON.stringify({
           success: true,
           message: "Signed in successfully",
+          userId: userId,
           result,
         }),
         {
@@ -80,6 +105,7 @@ http.route({
   }),
 });
 
+// call this route to check if the user is authenticated
 // Get current user info
 http.route({
   path: "/api/auth/me",
@@ -137,6 +163,7 @@ http.route({
 });
 
 // Sign out
+// This route handles user sign out
 http.route({
   path: "/api/auth/signout",
   method: "POST",

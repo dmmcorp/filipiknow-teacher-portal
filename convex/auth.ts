@@ -9,10 +9,13 @@ const CustomPassword = Password({
       fname: params.fname as string,
       lname: params.lname as string,
       image: params.image !== undefined ? (params.image as string) : null,
-      role: params.role as "teacher" | "student",
+      role: params.role as "teacher" | "student" | "admin",
       licenseNumber: params.licenseNumber as string,
       gradeLevel: params.gradeLevel as string,
-      certification: params.certification !== undefined ? (params.certification as string) : null,
+      certification:
+        params.certification !== undefined
+          ? (params.certification as string)
+          : null,
       isActive: true,
     };
   },

@@ -7,7 +7,6 @@ import {
   query,
 } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
 import { createUser } from "./model/users";
@@ -31,6 +30,22 @@ export const current = query({
       ...user,
       imageUrl,
     };
+  },
+});
+
+export const getUserIdByEmail = internalQuery({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .first();
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+    return user._id;
   },
 });
 
@@ -83,8 +98,7 @@ export const createStudentAccount = internalAction({
         gradeLevel: args.gradeLevel,
         section: args.section,
       });
-      // Automatically sign in the user after account creation
-      console.log(args.email);
+      return result;
     } catch (error) {
       console.error("Error in createAdmin:", error);
       throw error;
@@ -107,8 +121,9 @@ export const createAccount = httpAction(async (ctx, request) => {
       { status: 400 }
     );
   }
+  let userId: Id<"users"> | undefined = undefined;
   if (fname || lname || email || password || gradeLevel || section) {
-    await ctx.runAction(internal.users.createStudentAccount, {
+    userId = await ctx.runAction(internal.users.createStudentAccount, {
       fname,
       lname,
       email,
@@ -129,12 +144,7 @@ export const createAccount = httpAction(async (ctx, request) => {
   return new Response(
     JSON.stringify({
       message: "Account created successfully",
-      fname,
-      lname,
-      email,
-      password,
-      gradeLevel,
-      section,
+      userId: userId,
       result,
     }),
     {
@@ -154,25 +164,27 @@ export const editAccountInformation = mutation({
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError("Unauthorized")
+      throw new ConvexError("Unauthorized");
     }
 
-    const user = await ctx.db.get(userId)
+    const user = await ctx.db.get(userId);
     if (!user) {
-      throw new ConvexError("User not found")
+      throw new ConvexError("User not found");
     }
 
     const updateFields: Record<string, string | undefined> = {};
 
     if (args.fname !== undefined) updateFields.fname = args.fname;
     if (args.lname !== undefined) updateFields.lname = args.lname;
-    if (args.licenseNumber !== undefined) updateFields.licenseNumber = args.licenseNumber;
-    if (args.certification !== undefined) updateFields.certification = args.certification;
+    if (args.licenseNumber !== undefined)
+      updateFields.licenseNumber = args.licenseNumber;
+    if (args.certification !== undefined)
+      updateFields.certification = args.certification;
     if (args.email !== undefined) updateFields.email = args.email;
     if (args.image !== undefined) updateFields.image = args.image;
 
     await ctx.db.patch(args.userId, updateFields);
-  }
-})
+  },
+});
