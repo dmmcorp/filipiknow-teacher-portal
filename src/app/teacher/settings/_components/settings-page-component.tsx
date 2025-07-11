@@ -71,7 +71,7 @@ export const SettingsPageComponent = () => {
             <AccountInformation activeTab={activeTab} current={current} />
 
             {/* Login & Security Tab */}
-            <SecurityInformation activeTab={activeTab} />
+            <SecurityInformation activeTab={activeTab} current={current} />
           </CardContent>
         </Card>
       </div>
