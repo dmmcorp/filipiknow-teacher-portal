@@ -1,13 +1,15 @@
 import { v } from "convex/values";
 import { httpAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { NovelType } from "../src/lib/types";
+import { NovelType, SceneTypes } from "../src/lib/types";
+import { asyncMap } from "convex-helpers";
+
 export const getDialogue = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const novel = url.searchParams.get("novel");
   const chapter = url.searchParams.get("chapter");
   const level = url.searchParams.get("level");
-
+  console.log("Params:", { novel, chapter, level });
   if (!novel || !chapter || !level) {
     return new Response(JSON.stringify({ error: "Missing query parameters" }), {
       status: 400,
@@ -67,11 +69,21 @@ export const getDialoguesByProgress = internalQuery({
       .filter((q) => q.eq(q.field("chapter"), args.chapter))
       .filter((q) => q.eq(q.field("level"), args.level))
       .first();
+
     if (!dialogue) {
       throw new Error(
         `No dialogue found using: ${args.novel}, Chapter: ${args.chapter}, Level: ${args.level} `
       );
     }
-    return dialogue;
+    const scenes: SceneTypes[] = await ctx.runQuery(
+      internal.characters.getCharacterData,
+      {
+        scenes: dialogue.scenes,
+      }
+    );
+    const result = {
+      scenes: scenes,
+    };
+    return result;
   },
 });

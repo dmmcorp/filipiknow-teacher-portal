@@ -37,10 +37,12 @@ const schema = defineSchema({
     scenes: v.array(
       v.object({
         sceneNumber: v.number(), // e.g. 1, 2, 3
-        speaker: v.id("characters"), // e.g. "Maria Clara"
-        text: v.string(), // e.g. "I am Maria Clara"
+        speakerId: v.optional(v.id("characters")),
+        text: v.string(),
+        scene_bg_image: v.optional(v.string()), //papalit sa default image ng current dialog
       })
     ),
+    bg_image: v.optional(v.string()),
   }),
 
   characters: defineTable({
@@ -49,7 +51,7 @@ const schema = defineSchema({
       v.literal("El Filibusterismo")
     ),
     name: v.string(), // e.g. "Maria Clara"
-    image: v.string(), // e.g. "https://example.com/maria_clara.jpg",
+    image: v.optional(v.string()), // e.g. "https://example.com/maria_clara.jpg",
     description: v.string(), // e.g. "Maria Clara is a character in Noli me Tangere"
     role: v.optional(v.string()), // e.g. "Protagonist"
     unlocked: v.optional(v.boolean()), // e.g. true or false
