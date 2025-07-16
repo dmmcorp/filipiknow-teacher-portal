@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthUserId, modifyAccountCredentials } from "@convex-dev/auth/server";
 import {
   httpAction,
   internalAction,
@@ -186,5 +186,61 @@ export const editAccountInformation = mutation({
     if (args.image !== undefined) updateFields.image = args.image;
 
     await ctx.db.patch(args.userId, updateFields);
+  },
+});
+
+export const updateSecurityInformation = mutation({
+  args: {
+    userId: v.id("users"),
+    // currentPassword: v.string(),
+    newPassword: v.optional(v.string()),
+    email: v.string(),
+    phoneNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify if there is a current user logged in
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
+
+    // Get the current user from the database
+    const user = await ctx.db.get(userId);
+    if (!user) throw new ConvexError("User not found");
+
+    // Only allow user to update their own account
+    if (user._id !== args.userId) throw new ConvexError("Unauthorized");
+
+    // Check for email duplication
+    if (args.email !== user.email) {
+      const userWithSameEmail = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("email"), args.email))
+        .first();
+      if (userWithSameEmail && userWithSameEmail._id !== args.userId) {
+        throw new ConvexError("A user with this email already exists");
+      }
+    }
+
+    // If verification passed, update the password
+    try {
+      // @ts-expect-error - type error in convex
+      await modifyAccountCredentials(ctx, {
+        provider: "password",
+        account: {
+          id: user.email,
+          secret: args.newPassword,
+        },
+      });
+    } catch (error) {
+      throw new ConvexError("Failed to update password");
+    }
+
+    // Update email and phone number
+    const updateFields: Record<string, string | undefined> = {};
+    if (args.email !== user.email) updateFields.email = args.email;
+    if (args.phoneNumber !== undefined) updateFields.phoneNumber = args.phoneNumber;
+
+    if (Object.keys(updateFields).length > 0) {
+      await ctx.db.patch(args.userId, updateFields);
+    }
   },
 });
