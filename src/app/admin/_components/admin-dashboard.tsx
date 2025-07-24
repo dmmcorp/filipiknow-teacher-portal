@@ -4,7 +4,7 @@ import MainContent from './main-content'
 function AdminDashboard() {
   return (
     <>
-        <MainContent/>
+      <MainContent/>
     </>
   )
 }

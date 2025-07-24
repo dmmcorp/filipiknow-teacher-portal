@@ -20,7 +20,6 @@ import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as model_users from "../model/users.js";
 import type * as progress from "../progress.js";
-import type * as router from "../router.js";
 import type * as students from "../students.js";
 import type * as users from "../users.js";
 
@@ -40,7 +39,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "model/users": typeof model_users;
   progress: typeof progress;
-  router: typeof router;
   students: typeof students;
   users: typeof users;
 }>;

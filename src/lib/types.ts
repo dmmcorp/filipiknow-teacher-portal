@@ -1,4 +1,4 @@
-import { Id } from "../../convex/_generated/dataModel";
+import { Doc, Id } from "../../convex/_generated/dataModel";
 
 export type AuthFlow = "signIn" | "signUp";
 
@@ -10,6 +10,18 @@ export interface SceneTypes {
     name: string;
   };
   sceneNumber: number;
+  highlighted_word:
+    | {
+        word: string;
+        definition: string;
+      }
+    | undefined;
   speakerId: Id<"characters">;
   text: string;
+}
+
+export type DialogueType = Doc<"dialogues">;
+export interface AllDialogues {
+  noli: DialogueType[];
+  elFili: DialogueType[];
 }

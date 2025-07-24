@@ -9,8 +9,15 @@ export const getCharacterData = internalQuery({
     scenes: v.array(
       v.object({
         sceneNumber: v.number(), // e.g. 1, 2, 3
-        speakerId: v.optional(v.id("characters")), // e.g. "Maria Clara"
-        text: v.string(), // e.g. "I am Maria Clara"
+        speakerId: v.optional(v.id("characters")),
+        text: v.string(),
+        highlighted_word: v.optional(
+          v.object({
+            word: v.string(), // e.g. "Maria Clara"
+            definition: v.string(), // e.g. "Maria Clara is a character in Noli me Tangere"
+          })
+        ), // e.g. { word: "Maria Clara", definition: "Maria Clara is a character in Noli me Tangere" }
+        scene_bg_image: v.optional(v.string()), //papalit sa default image ng current dialog
       })
     ),
   },

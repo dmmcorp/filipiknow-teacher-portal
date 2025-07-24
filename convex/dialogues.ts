@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { httpAction, internalQuery } from "./_generated/server";
+import { httpAction, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { NovelType, SceneTypes } from "../src/lib/types";
 import { asyncMap } from "convex-helpers";
@@ -82,8 +82,28 @@ export const getDialoguesByProgress = internalQuery({
       }
     );
     const result = {
+      novel_metadata: dialogue,
       scenes: scenes,
     };
     return result;
+  },
+});
+
+export const getAllDialogues = query({
+  args: {},
+  handler: async (ctx) => {
+    const dialogues = await ctx.db.query("dialogues").collect();
+
+    const noliDialouges = dialogues.filter(
+      (dialouge) => dialouge.novel === "Noli me tangere"
+    );
+    const elFiliDialouges = dialogues.filter(
+      (dialouge) => dialouge.novel === "El Filibusterismo"
+    );
+
+    return {
+      noli: noliDialouges,
+      elFili: elFiliDialouges,
+    };
   },
 });
