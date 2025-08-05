@@ -1,15 +1,15 @@
-import { v } from "convex/values";
-import { internalQuery } from "./_generated/server";
-import { asyncMap } from "convex-helpers";
-import { SceneTypes } from "../src/lib/types";
-import { Id } from "./_generated/dataModel";
+import { asyncMap } from 'convex-helpers';
+import { v } from 'convex/values';
+import { SceneTypes } from '../src/lib/types';
+import { Id } from './_generated/dataModel';
+import { internalQuery, query } from './_generated/server';
 
 export const getCharacterData = internalQuery({
   args: {
     scenes: v.array(
       v.object({
         sceneNumber: v.number(), // e.g. 1, 2, 3
-        speakerId: v.optional(v.id("characters")),
+        speakerId: v.optional(v.id('characters')),
         text: v.string(),
         highlighted_word: v.optional(
           v.object({
@@ -32,8 +32,8 @@ export const getCharacterData = internalQuery({
       }
 
       const imgUrl = character.image
-        ? await ctx.storage.getUrl(character.image as Id<"_storage">)
-        : "";
+        ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
+        : '';
 
       return {
         ...scene,
@@ -48,5 +48,22 @@ export const getCharacterData = internalQuery({
 
     const filteredScenes = scenesWithSpeaker.filter((scene) => scene !== null);
     return filteredScenes as SceneTypes[];
+  },
+});
+
+export const getCharacters = query({
+  args: {},
+  handler: async (ctx) => {
+    const characters = await ctx.db.query('characters').collect();
+    const result = await asyncMap(characters, async (character) => {
+      const imgUrl = character.image
+        ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
+        : '';
+      return {
+        ...character,
+        image: imgUrl,
+      };
+    });
+    return result;
   },
 });

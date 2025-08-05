@@ -1,6 +1,6 @@
-import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
-import { v } from "convex/values";
+import { authTables } from '@convex-dev/auth/server';
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 const schema = defineSchema({
   ...authTables,
@@ -11,9 +11,9 @@ const schema = defineSchema({
     isActive: v.optional(v.boolean()),
     email: v.string(),
     role: v.union(
-      v.literal("teacher"),
-      v.literal("student"),
-      v.literal("admin")
+      v.literal('teacher'),
+      v.literal('student'),
+      v.literal('admin')
     ),
     emailVerified: v.optional(v.boolean()),
     licenseNumber: v.optional(v.string()),
@@ -23,15 +23,15 @@ const schema = defineSchema({
   }),
 
   students: defineTable({
-    userId: v.id("users"),
+    userId: v.id('users'),
     section: v.string(),
     gradeLevel: v.string(),
-  }).index("by_userId", ["userId"]),
+  }).index('by_userId', ['userId']),
 
   dialogues: defineTable({
     novel: v.union(
-      v.literal("Noli me tangere"),
-      v.literal("El Filibusterismo")
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
     ), // e.g "Noli me tangere"
     chapter: v.number(), // e.g. 1
     chapter_title: v.string(), // e.g. "Ang Piging"
@@ -39,7 +39,7 @@ const schema = defineSchema({
     scenes: v.array(
       v.object({
         sceneNumber: v.number(), // e.g. 1, 2, 3
-        speakerId: v.optional(v.id("characters")),
+        speakerId: v.optional(v.id('characters')),
         text: v.string(),
         highlighted_word: v.optional(
           v.object({
@@ -54,7 +54,7 @@ const schema = defineSchema({
   }),
 
   mini_games: defineTable({
-    dialogueId: v.id("dialogues"),
+    dialogueId: v.id('dialogues'),
     identification: v.object({
       question: v.string(), // e.g. "Who is Maria Clara?"
       hint: v.optional(v.string()), // e.g. "Choose the correct word to fill in the blank."
@@ -80,8 +80,8 @@ const schema = defineSchema({
   }),
   characters: defineTable({
     novel: v.union(
-      v.literal("Noli me tangere"),
-      v.literal("El Filibusterismo")
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
     ),
     name: v.string(), // e.g. "Maria Clara"
     image: v.optional(v.string()), // e.g. "https://example.com/maria_clara.jpg",
@@ -92,15 +92,15 @@ const schema = defineSchema({
   }),
 
   progress: defineTable({
-    studentId: v.id("students"),
+    studentId: v.id('students'),
     novel: v.union(
-      v.literal("Noli me tangere"),
-      v.literal("El Filibusterismo")
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
     ), // e.g "Noli me tangere"
     current_chapter: v.number(), // e.g. kabanata 1
     current_level: v.number(), // e.g. level 2
     completed: v.number(), // e.g. 0, 1, 2, 3, 4, 5
-  }).index("by_studentId", ["studentId"]),
+  }).index('by_studentId', ['studentId']),
 });
 
 export default schema;

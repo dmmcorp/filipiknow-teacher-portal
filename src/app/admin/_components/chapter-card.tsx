@@ -2,34 +2,31 @@
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DialogueType } from '@/lib/types';
+import { ChaptersType } from '@/lib/types';
+import { Book } from 'lucide-react';
 
 interface ChapterCardProps {
-  chapter: DialogueType;
+  chapter: ChaptersType;
 }
 
 export default function ChapterCard({ chapter }: ChapterCardProps) {
   return (
-    <Card>
+    <Card className="hover:shadow-lg transition-all duration-500 ease-in-out">
       <CardHeader>
-        <CardTitle className="text-lg font-bold">
-          Chapter {chapter.chapter}: {chapter.chapter_title}
+        <CardTitle className="flex gap-2 text-lg font-bold">
+          <Book className="text-2xl text-gray-700 mb-2" />
+          <span className="">
+            Chapter {chapter.chapter}: {chapter.chapterTitle}
+          </span>
         </CardTitle>
         <CardDescription className="text-sm text-gray-600">
-          <Badge>Level {chapter.level.toString()}</Badge>{' '}
-          {chapter.scenes.length}Scenes
+          <Badge>{chapter.levels.toString()} Level </Badge>{' '}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-700 truncate">
-          First Scene: {chapter.scenes[0].text}
-        </p>
-      </CardContent>
     </Card>
   );
 }
