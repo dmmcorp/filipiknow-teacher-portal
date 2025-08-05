@@ -1,4 +1,5 @@
 import { ConvexClientProvider } from '@/components/auth/convex-client-provider';
+import { AdminGuard } from '@/components/guards/admin-guard';
 import { Toaster } from '@/components/ui/sonner';
 import '@/lib/globals.css';
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server';
@@ -18,15 +19,17 @@ export default function RootLayout({
   return (
     <ConvexAuthNextjsServerProvider>
       <ConvexClientProvider>
-        <div className="flex flex-col min-h-screen ">
-          <div className="flex justify-end w-full bg-blue-200 px-10 py-2">
-            <UserDropdown />
+        <AdminGuard>
+          <div className="flex flex-col min-h-screen ">
+            <div className="flex justify-end w-full bg-blue-200 px-10 py-2">
+              <UserDropdown />
+            </div>
+            <div className="flex-1 flex flex-col bg-gray-100">
+              {children}
+              <Toaster />
+            </div>
           </div>
-          <div className="flex-1 flex flex-col bg-gray-100">
-            {children}
-            <Toaster />
-          </div>
-        </div>
+        </AdminGuard>
       </ConvexClientProvider>
     </ConvexAuthNextjsServerProvider>
   );

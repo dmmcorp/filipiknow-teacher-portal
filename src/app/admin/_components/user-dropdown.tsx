@@ -1,5 +1,6 @@
-"use client";
+'use client';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,13 +8,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown } from "lucide-react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/dropdown-menu';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { useQuery } from 'convex/react';
+import { ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { api } from '../../../../convex/_generated/api';
 
 export const UserDropdown = () => {
   const current = useQuery(api.users.current);
@@ -22,11 +22,10 @@ export const UserDropdown = () => {
 
   if (current === undefined) return <div>Loading....</div>;
 
-  const fullName = current?.fname + " " + current?.lname;
+  const fullName = current?.fname + ' ' + current?.lname;
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/");
   };
   return (
     <div className="">

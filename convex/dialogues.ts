@@ -128,3 +128,41 @@ export const getStatsOverview = query({
     };
   },
 });
+
+export const getChapterData = query({
+  args: {
+    novel: v.string(),
+    chapter: v.number(),
+  },
+  handler: async (ctx, args) => {
+    if (isNaN(args.chapter)) {
+      throw new Error('invalid chapter type');
+    }
+    const dialogues = await ctx.db
+      .query('dialogues')
+      .filter((q) => q.eq(q.field('novel'), args.novel))
+      .filter((q) => q.eq(q.field('chapter'), args.chapter))
+      .collect();
+
+    if (dialogues.length < 1) {
+      return {
+        chapterData: null,
+        levels: null,
+        error: `No chapters have been added yet.`,
+      };
+    }
+    const levels = dialogues.map((dialogue) => {
+      const dialogues = dialogue.scenes;
+      return {
+        level: dialogue.level,
+        dialogues: dialogues,
+      };
+    });
+    const chapter = dialogues[0];
+    return {
+      chapterData: chapter,
+      levels: levels,
+      error: null,
+    };
+  },
+});

@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import { AuthFlow } from "@/lib/types";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { LoginCard } from "./log-in-card";
-import { RegisterCard } from "./register-card";
-import { useConvexAuth } from "convex/react";
-import { useRouter } from "next/navigation";
+import { AuthFlow } from '@/lib/types';
+import { useConvexAuth } from 'convex/react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { LoginCard } from './log-in-card';
+import { RegisterCard } from './register-card';
+import { RoleCheck } from './role-check';
 
 export const AuthScreen = () => {
-  const [state, setState] = useState<AuthFlow>("signIn");
+  const [state, setState] = useState<AuthFlow>('signIn');
   const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/teacher");
-    }
-  }, [isAuthenticated, router]);
+  if (isAuthenticated) {
+    return <RoleCheck />;
+  }
 
   return (
     <>
-      {state === "signIn" ? (
+      {state === 'signIn' ? (
         <div className="h-full w-full mx-auto my-[100px]">
           <div className="w-full flex flex-col items-center space-y-5">
             <Image

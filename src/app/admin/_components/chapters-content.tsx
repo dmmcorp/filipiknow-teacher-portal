@@ -4,12 +4,14 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, geistEfcaFont } from '@/lib/utils';
 import { useQuery } from 'convex/react';
+import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
 import ChapterForm from './chapter-form';
 import NovelTabContent from './novel-tab-content';
 
 function MainContent() {
   const dialogues = useQuery(api.dialogues.getAllDialogues, {});
+  const [selectedNovel, setSelectedNovel] = useState<string>('noli');
 
   if (!dialogues) {
     return (
@@ -21,11 +23,15 @@ function MainContent() {
 
   const noli = dialogues.noli;
   const elFili = dialogues.elFili;
-
+  console.log(selectedNovel);
   return (
     <div className="flex-1 container mx-auto flex">
       <Card className="w-full p-0 bg-white shadow-md min-h-[75vh]">
-        <Tabs defaultValue="noli" className="w-full">
+        <Tabs
+          defaultValue={selectedNovel}
+          onValueChange={setSelectedNovel}
+          className="w-full"
+        >
           <TabsList
             className={cn(geistEfcaFont.className, 'grid  grid-cols-2')}
           >

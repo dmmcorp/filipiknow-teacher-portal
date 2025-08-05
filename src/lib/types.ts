@@ -27,3 +27,27 @@ export interface ChaptersType {
   chapterTitle: string;
   dialogues: number;
 }
+
+export interface LevelsType {
+  level: number;
+  dialogues: CharacterDialogueType[];
+}
+
+export interface CharacterDialogueType {
+  speakerId?: Id<'characters'> | undefined;
+  highlighted_word?:
+    | {
+        word: string;
+        definition: string;
+      }
+    | undefined;
+  scene_bg_image?: string | undefined;
+  sceneNumber: number;
+  text: string;
+}
+
+//type for getChapterData query in a convex/dialogue.ts
+export interface GetChapterDataType {
+  chapterData: Doc<'dialogues'>;
+  levels: LevelsType[];
+}
