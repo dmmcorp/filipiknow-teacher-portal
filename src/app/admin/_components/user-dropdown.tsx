@@ -12,13 +12,11 @@ import {
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useQuery } from 'convex/react';
 import { ChevronDown } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { api } from '../../../../convex/_generated/api';
 
 export const UserDropdown = () => {
   const current = useQuery(api.users.current);
   const { signOut } = useAuthActions();
-  const router = useRouter();
 
   if (current === undefined) return <div>Loading....</div>;
 

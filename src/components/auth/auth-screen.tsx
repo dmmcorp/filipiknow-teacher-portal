@@ -3,7 +3,6 @@
 import { AuthFlow } from '@/lib/types';
 import { useConvexAuth } from 'convex/react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LoginCard } from './log-in-card';
 import { RegisterCard } from './register-card';
@@ -11,7 +10,6 @@ import { RoleCheck } from './role-check';
 
 export const AuthScreen = () => {
   const [state, setState] = useState<AuthFlow>('signIn');
-  const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) {

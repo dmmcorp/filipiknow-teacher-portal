@@ -138,7 +138,7 @@ function AdminDashboard() {
 
                           <div className="flex items-center gap-1">
                             <Link
-                              href={`/admin/${selectedNovel}/${chapter.chapter}/${chapter.chapterTitle}`}
+                              href={`/admin/${selectedNovel}/${chapter.chapter}`}
                             >
                               <Button
                                 size="sm"

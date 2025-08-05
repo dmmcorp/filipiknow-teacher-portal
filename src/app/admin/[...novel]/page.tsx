@@ -5,18 +5,16 @@ const formatText = (text: string | undefined | null) => {
   return text.replaceAll('%20', ' ');
 };
 
-async function Page({
+export default async function Page({
   params,
 }: {
-  params: {
-    novel: Promise<string[]>;
-  };
+  params: Promise<{ novel: string[] }>;
 }) {
-  const novelArr = await (await params).novel;
+  const { novel } = await params;
   const data = {
-    novel: formatText(novelArr[0]),
-    chapterNo: formatText(novelArr[1]),
-    chapterTitle: formatText(novelArr[2]),
+    novel: formatText(novel[0]),
+    chapterNo: formatText(novel[1]),
+    chapterTitle: formatText(novel[2]),
   };
   return (
     <>
@@ -28,5 +26,3 @@ async function Page({
     </>
   );
 }
-
-export default Page;

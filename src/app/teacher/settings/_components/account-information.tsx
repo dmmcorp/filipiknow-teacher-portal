@@ -1,19 +1,21 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { FunctionReturnType } from "convex/server";
-import { CheckIcon, Loader2Icon } from "lucide-react";
-import { useState } from "react";
-import { api } from "../../../../../convex/_generated/api";
-import { useMutation } from "convex/react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Id } from "../../../../../convex/_generated/dataModel";
-import { toast } from "sonner";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from 'convex/react';
+import { FunctionReturnType } from 'convex/server';
+import { CheckIcon, Loader2Icon } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 type CurrentUserType = FunctionReturnType<typeof api.users.current>;
 
@@ -23,10 +25,10 @@ interface AccountInformationProps {
 }
 
 const accountSchema = z.object({
-  fname: z.string().min(1, "First name is required"),
-  lname: z.string().min(1, "Last name is required"),
+  fname: z.string().min(1, 'First name is required'),
+  lname: z.string().min(1, 'Last name is required'),
   licenseNumber: z.string().optional(),
-  email: z.string().email("Invalid email"),
+  email: z.string().email('Invalid email'),
   certification: z.any().optional(),
   image: z.any().optional(),
 });
@@ -38,7 +40,7 @@ export const AccountInformation = ({
   current,
 }: AccountInformationProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [, setSelectedImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(
     current?.imageUrl ?? null
   );
@@ -59,10 +61,10 @@ export const AccountInformation = ({
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
-      fname: current?.fname || "",
-      lname: current?.lname || "",
-      licenseNumber: current?.licenseNumber || "",
-      email: current?.email || "",
+      fname: current?.fname || '',
+      lname: current?.lname || '',
+      licenseNumber: current?.licenseNumber || '',
+      email: current?.email || '',
     },
   });
 
@@ -82,16 +84,17 @@ export const AccountInformation = ({
     try {
       const uploadUrl = await generateUploadUrl();
       const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
-      if (!result.ok) throw new Error("Image upload failed");
+      if (!result.ok) throw new Error('Image upload failed');
       const { storageId } = await result.json();
       setImageStorageId(storageId);
-      toast.success("Profile image uploaded!");
-    } catch (error) {
-      toast.error("Failed to upload image");
+      toast.success('Profile image uploaded!');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast.error('Failed to upload image');
       setPreviewImage(current?.imageUrl ?? null);
       setImageStorageId(current?.image ?? null);
     } finally {
@@ -102,14 +105,14 @@ export const AccountInformation = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setSelectedFile(file || null);
-    setValue("certification", file);
+    setValue('certification', file);
   };
 
   const onSubmit = async (data: AccountFormValues) => {
     setIsUpdatingProfile(true);
     try {
       await editAccount({
-        userId: current?._id as Id<"users">,
+        userId: current?._id as Id<'users'>,
         fname: data.fname,
         lname: data.lname,
         licenseNumber: data.licenseNumber,
@@ -118,9 +121,9 @@ export const AccountInformation = ({
         image: imageStorageId ?? undefined,
       });
 
-      toast.success("Account updated!");
+      toast.success('Account updated!');
     } catch (error) {
-      toast.error("Error updating account. Please try again later");
+      toast.error('Error updating account. Please try again later');
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -128,7 +131,7 @@ export const AccountInformation = ({
 
   return (
     <>
-      {activeTab === "account" && (
+      {activeTab === 'account' && (
         <div className="border-0">
           <div className="p-8">
             <form onSubmit={handleSubmit(onSubmit)}>
@@ -140,7 +143,7 @@ export const AccountInformation = ({
                 <div className="flex items-center gap-6">
                   <Avatar className="w-20 h-20 cursor-pointer">
                     <AvatarImage
-                      src={previewImage || "/placeholder.svg"}
+                      src={previewImage || '/placeholder.svg'}
                       alt={current?.fname}
                     />
                     <AvatarFallback className="text-2xl">
@@ -193,7 +196,7 @@ export const AccountInformation = ({
                   <Label htmlFor="fname">First name</Label>
                   <Input
                     id="fname"
-                    {...register("fname")}
+                    {...register('fname')}
                     className="bg-white"
                   />
                   {errors.fname && (
@@ -206,7 +209,7 @@ export const AccountInformation = ({
                   <Label htmlFor="lname">Last name</Label>
                   <Input
                     id="lname"
-                    {...register("lname")}
+                    {...register('lname')}
                     className="bg-white"
                   />
                   {errors.lname && (
@@ -222,7 +225,7 @@ export const AccountInformation = ({
                   <Input
                     id="licenseNumber"
                     placeholder="e.g. 12345678"
-                    {...register("licenseNumber")}
+                    {...register('licenseNumber')}
                     className="bg-white"
                   />
                   {errors.licenseNumber && (
@@ -239,7 +242,7 @@ export const AccountInformation = ({
                     <Input
                       id="email"
                       type="email"
-                      {...register("email")}
+                      {...register('email')}
                       className="bg-white pr-20"
                     />
                     <Badge className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-100 text-green-700 hover:bg-green-100">
@@ -273,7 +276,7 @@ export const AccountInformation = ({
                       Choose File
                     </Button>
                     <span className="text-sm text-gray-500">
-                      {selectedFile ? selectedFile.name : "No file chosen"}
+                      {selectedFile ? selectedFile.name : 'No file chosen'}
                     </span>
                   </div>
                 </div>
@@ -293,7 +296,7 @@ export const AccountInformation = ({
                       Updating...
                     </span>
                   ) : (
-                    "Update Profile"
+                    'Update Profile'
                   )}
                 </Button>
               </div>

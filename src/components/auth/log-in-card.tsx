@@ -6,7 +6,6 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { TriangleAlertIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
@@ -24,7 +23,6 @@ export const LoginCard = ({
   const [error, setError] = useState('');
   const { signIn } = useAuthActions();
   const [rememberMe, setRememberMe] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBER_EMAIL_KEY);

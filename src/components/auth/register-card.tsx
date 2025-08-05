@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { AuthFlow } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Button } from "../ui/button";
-import { CameraIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
-import { toast } from "sonner";
-import Image from "next/image";
-import { Input } from "../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "../ui/label";
-import { Checkbox } from "../ui/checkbox";
-import { Separator } from "../ui/separator";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { AuthFlow } from '@/lib/types';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { useMutation } from 'convex/react';
+import { Loader2Icon, TriangleAlertIcon } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { api } from '../../../convex/_generated/api';
+import { Avatar, AvatarImage } from '../ui/avatar';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
 
 export const RegisterCard = ({
   setState,
@@ -40,15 +40,15 @@ export const RegisterCard = ({
     privacy: false,
     newsletter: false,
   });
-  const [fname, setFname] = useState("");
-  const [lname, setLname] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [gradeLevel, setGradeLevel] = useState("");
-  const [licenseNumber, setLicenseNumber] = useState("");
+  const [fname, setFname] = useState('');
+  const [lname, setLname] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [certification, setCertification] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const { signIn } = useAuthActions();
   const router = useRouter();
 
@@ -64,13 +64,13 @@ export const RegisterCard = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+      toast.error('Image must be less than 5MB');
       return;
     }
 
@@ -86,8 +86,8 @@ export const RegisterCard = ({
       const postUrl = await generateUploadUrl();
 
       const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
@@ -95,8 +95,8 @@ export const RegisterCard = ({
       //   form.setValue("image", storageId);
       setImage(storageId);
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload image");
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
       // Cleanup preview URL on error
       URL.revokeObjectURL(newPreviewUrl);
       setPreviewUrl(null);
@@ -112,17 +112,17 @@ export const RegisterCard = ({
     if (!file) return;
 
     const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    const allowedExtensions = [".pdf", ".docx"];
+    const allowedExtensions = ['.pdf', '.docx'];
     const fileName = file.name.toLowerCase();
 
     if (
       !allowedTypes.includes(file.type) &&
       !allowedExtensions.some((ext) => fileName.endsWith(ext))
     ) {
-      toast.error("Only PDF or DOCX files are allowed");
+      toast.error('Only PDF or DOCX files are allowed');
       return;
     }
 
@@ -133,16 +133,16 @@ export const RegisterCard = ({
       const postUrl = await generateUploadUrl();
 
       const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
       const { storageId } = await result.json();
       setCertification(storageId);
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload file");
+      console.error('Upload error:', error);
+      toast.error('Failed to upload file');
       setSelectedFile(null);
     } finally {
       setIsUploading(false);
@@ -159,47 +159,47 @@ export const RegisterCard = ({
   const onRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError("");
+    setError('');
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       setIsSubmitting(false);
       return;
     }
 
     if (!agreements.terms || !agreements.privacy) {
-      setError("You must agree to the Terms and Privacy Policy");
+      setError('You must agree to the Terms and Privacy Policy');
       setIsSubmitting(false);
       return;
     }
 
     if (!certification) {
-      setError("Please upload your certification file");
+      setError('Please upload your certification file');
       setIsSubmitting(false);
       return;
     }
 
     try {
-      await signIn("password", {
+      await signIn('password', {
         email,
         password,
         fname,
         lname,
         image,
-        role: "teacher",
+        role: 'teacher',
         licenseNumber,
         gradeLevel,
         certification,
-        flow: "signUp",
+        flow: 'signUp',
       });
-      setError("");
-      router.push("/teacher");
+      setError('');
+      router.push('/teacher');
       // Optionally redirect or show success
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Registration failed");
+        setError('Registration failed');
       }
     } finally {
       setIsSubmitting(false);
@@ -235,7 +235,7 @@ export const RegisterCard = ({
                     <Avatar className="h-24 w-24 border border-gray-400">
                       <AvatarImage
                         className="avatar-image"
-                        src={previewUrl || "/placeholder.svg"}
+                        src={previewUrl || '/placeholder.svg'}
                         alt={`photo uploaded by user`}
                       />
                     </Avatar>
@@ -254,9 +254,9 @@ export const RegisterCard = ({
                           setPreviewUrl(null);
 
                           const input = document.getElementById(
-                            "profile-image-upload"
+                            'profile-image-upload'
                           ) as HTMLInputElement | null;
-                          if (input) input.value = "";
+                          if (input) input.value = '';
                         }}
                         variant="ghost"
                       >
@@ -271,7 +271,7 @@ export const RegisterCard = ({
                       height={97}
                       className="gap-2"
                       onClick={() =>
-                        document.getElementById("profile-image-upload")?.click()
+                        document.getElementById('profile-image-upload')?.click()
                       }
                       src="/images/profile-icon.svg"
                       alt="user icon"
@@ -409,7 +409,7 @@ export const RegisterCard = ({
                         Choose File
                       </div>
                       <div className="flex-1 px-3 py-2 text-sm text-gray-500 bg-white">
-                        {selectedFile ? selectedFile.name : "No file chosen"}
+                        {selectedFile ? selectedFile.name : 'No file chosen'}
                       </div>
                     </div>
                   </div>
@@ -421,10 +421,10 @@ export const RegisterCard = ({
                     <Checkbox
                       id="terms"
                       checked={agreements.terms}
-                      onCheckedChange={() => handleCheckboxChange("terms")}
+                      onCheckedChange={() => handleCheckboxChange('terms')}
                     />
                     <label htmlFor="terms" className="text-sm text-gray-700">
-                      I agree to the{" "}
+                      I agree to the{' '}
                       <a href="#" className="text-blue-600 hover:underline">
                         Terms and Conditions
                       </a>
@@ -435,10 +435,10 @@ export const RegisterCard = ({
                     <Checkbox
                       id="privacy"
                       checked={agreements.privacy}
-                      onCheckedChange={() => handleCheckboxChange("privacy")}
+                      onCheckedChange={() => handleCheckboxChange('privacy')}
                     />
                     <label htmlFor="privacy" className="text-sm text-gray-700">
-                      I agree to the{" "}
+                      I agree to the{' '}
                       <a href="#" className="text-blue-600 hover:underline">
                         Privacy Policy
                       </a>
@@ -449,7 +449,7 @@ export const RegisterCard = ({
                     <Checkbox
                       id="newsletter"
                       checked={agreements.newsletter}
-                      onCheckedChange={() => handleCheckboxChange("newsletter")}
+                      onCheckedChange={() => handleCheckboxChange('newsletter')}
                     />
                     <label
                       htmlFor="newsletter"
@@ -464,7 +464,7 @@ export const RegisterCard = ({
 
             <div className="w-full flex justify-center items-center">
               <Button className="w-full sm:w-[300px]" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Account"}
+                {isSubmitting ? 'Creating...' : 'Create Account'}
               </Button>
             </div>
           </form>
@@ -472,9 +472,9 @@ export const RegisterCard = ({
           <Separator />
 
           <div className="flex items-center">
-            Already have an account?{" "}
+            Already have an account?{' '}
             <Button
-              onClick={() => setState("signIn")}
+              onClick={() => setState('signIn')}
               className="text-blue-600"
               variant="ghost"
             >
