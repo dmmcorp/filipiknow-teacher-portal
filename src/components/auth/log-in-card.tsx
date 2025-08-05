@@ -1,32 +1,28 @@
-import Logo from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { AuthFlow } from "@/lib/types";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { MailIcon, TriangleAlertIcon } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import Image from "next/image";
-import { Checkbox } from "../ui/checkbox";
-import { useRouter } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { AuthFlow } from '@/lib/types';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { TriangleAlertIcon } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
 
-const REMEMBER_EMAIL_KEY = "filipiknow-remember-email";
+const REMEMBER_EMAIL_KEY = 'filipiknow-remember-email';
 
 export const LoginCard = ({
   setState,
 }: {
   setState: (state: AuthFlow) => void;
 }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [pending, setPending] = useState<boolean>(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const { signIn } = useAuthActions();
   const [rememberMe, setRememberMe] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBER_EMAIL_KEY);
@@ -43,15 +39,15 @@ export const LoginCard = ({
     if (pending) return;
 
     setPending(true);
-    setError("");
+    setError('');
 
     try {
-      await signIn("password", {
+      await signIn('password', {
         email,
         password,
-        flow: "signIn",
+        flow: 'signIn',
       });
-      setError("");
+      setError('');
 
       if (rememberMe) {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email);
@@ -59,18 +55,18 @@ export const LoginCard = ({
         localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch (error) {
-      console.error("Sign in error:", error);
+      console.error('Sign in error:', error);
 
       if (error instanceof Error) {
-        if (error.message.includes("Failed to fetch")) {
+        if (error.message.includes('Failed to fetch')) {
           setError(
-            "Connection error. Please check your internet connection and try again."
+            'Connection error. Please check your internet connection and try again.'
           );
         } else {
-          setError("Invalid email or password");
+          setError('Invalid email or password');
         }
       } else {
-        setError("Invalid email or password");
+        setError('Invalid email or password');
       }
     } finally {
       setPending(false);
@@ -162,9 +158,9 @@ export const LoginCard = ({
             <Separator />
 
             <div className="flex items-center">
-              Don&apos;t have an account yet?{" "}
+              Don&apos;t have an account yet?{' '}
               <Button
-                onClick={() => setState("signUp")}
+                onClick={() => setState('signUp')}
                 className="text-blue-600"
                 variant="ghost"
               >

@@ -1,18 +1,9 @@
-"use client";
+'use client';
 
-import { useConvexAuth, useQuery } from "convex/react";
-import { Loader2Icon } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
-import { api } from "../../../../convex/_generated/api";
-import { AuthFlow } from "@/lib/types";
-import { LoginCard } from "./log-in-card";
-import Logo from "@/components/logo";
+import Logo from '@/components/logo';
+import { LoginCard } from './log-in-card';
 
 export const AuthScreen = () => {
-  const [state, setState] = useState<AuthFlow>("signIn");
-  const { isAuthenticated } = useConvexAuth();
-
   // if (isAuthenticated) {
   //   return <RoleCheck />;
   // }
@@ -30,12 +21,7 @@ export const AuthScreen = () => {
       </div>
       <div className="h-full w-full  lg:w-[50%] flex flex-col flex-1 items-center justify-center bg-background">
         <div className="md:h-auto w-full">
-          {state === "signIn" ? (
-            <LoginCard setState={setState} />
-          ) : (
-            //   <SignUpCardRegister setState={setState} />
-            <></>
-          )}
+          <LoginCard />
         </div>
       </div>
     </div>

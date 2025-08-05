@@ -14,12 +14,13 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
+import type * as characters from "../characters.js";
 import type * as dialogues from "../dialogues.js";
 import type * as files from "../files.js";
+import type * as helpers_dialogues from "../helpers/dialogues.js";
+import type * as helpers_users from "../helpers/users.js";
 import type * as http from "../http.js";
-import type * as model_users from "../model/users.js";
 import type * as progress from "../progress.js";
-import type * as router from "../router.js";
 import type * as students from "../students.js";
 import type * as users from "../users.js";
 
@@ -33,12 +34,13 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  characters: typeof characters;
   dialogues: typeof dialogues;
   files: typeof files;
+  "helpers/dialogues": typeof helpers_dialogues;
+  "helpers/users": typeof helpers_users;
   http: typeof http;
-  "model/users": typeof model_users;
   progress: typeof progress;
-  router: typeof router;
   students: typeof students;
   users: typeof users;
 }>;

@@ -1,16 +1,18 @@
-import { getAuthUserId, modifyAccountCredentials } from "@convex-dev/auth/server";
+import {
+  getAuthUserId,
+  modifyAccountCredentials,
+} from '@convex-dev/auth/server';
+import { ConvexError, v } from 'convex/values';
+import { api, internal } from './_generated/api';
+import { Id } from './_generated/dataModel';
 import {
   httpAction,
   internalAction,
   internalQuery,
   mutation,
   query,
-} from "./_generated/server";
-import { Id } from "./_generated/dataModel";
-import { api, internal } from "./_generated/api";
-import { ConvexError, v } from "convex/values";
-import { createUser } from "./model/users";
-import { signIn } from "./auth";
+} from './_generated/server';
+import { createUser } from './helpers/users';
 
 // backend function to get the current logged in user
 export const current = query({
@@ -23,7 +25,7 @@ export const current = query({
     if (!user) return null;
 
     const imageUrl = user.image
-      ? await ctx.storage.getUrl(user.image as Id<"_storage">)
+      ? await ctx.storage.getUrl(user.image as Id<'_storage'>)
       : undefined;
 
     return {
@@ -39,11 +41,11 @@ export const getUserIdByEmail = internalQuery({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
+      .query('users')
+      .filter((q) => q.eq(q.field('email'), args.email))
       .first();
     if (!user) {
-      throw new ConvexError("User not found");
+      throw new ConvexError('User not found');
     }
     return user._id;
   },
@@ -69,8 +71,8 @@ export const checkExistingEmail = internalQuery({
   },
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
+      .query('users')
+      .filter((q) => q.eq(q.field('email'), args.email))
       .first();
     return !!existingUser;
   },
@@ -100,7 +102,7 @@ export const createStudentAccount = internalAction({
       });
       return result;
     } catch (error) {
-      console.error("Error in createAdmin:", error);
+      console.error('Error in createAdmin:', error);
       throw error;
     }
   },
@@ -117,11 +119,11 @@ export const createAccount = httpAction(async (ctx, request) => {
 
   if (existingEmail) {
     return new Response(
-      JSON.stringify({ error: "User with this email already exists" }),
+      JSON.stringify({ error: 'User with this email already exists' }),
       { status: 400 }
     );
   }
-  let userId: Id<"users"> | undefined = undefined;
+  let userId: Id<'users'> | undefined = undefined;
   if (fname || lname || email || password || gradeLevel || section) {
     userId = await ctx.runAction(internal.users.createStudentAccount, {
       fname,
@@ -134,16 +136,16 @@ export const createAccount = httpAction(async (ctx, request) => {
   }
 
   const result = await ctx.runAction(api.auth.signIn, {
-    provider: "password",
+    provider: 'password',
     params: {
       email,
       password,
-      flow: "signUp",
+      flow: 'signUp',
     },
   });
   return new Response(
     JSON.stringify({
-      message: "Account created successfully",
+      message: 'Account created successfully',
       userId: userId,
       result,
     }),
@@ -155,7 +157,7 @@ export const createAccount = httpAction(async (ctx, request) => {
 
 export const editAccountInformation = mutation({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
     fname: v.optional(v.string()),
     lname: v.optional(v.string()),
     licenseNumber: v.optional(v.string()),
@@ -166,12 +168,12 @@ export const editAccountInformation = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError("Unauthorized");
+      throw new ConvexError('Unauthorized');
     }
 
     const user = await ctx.db.get(userId);
     if (!user) {
-      throw new ConvexError("User not found");
+      throw new ConvexError('User not found');
     }
 
     const updateFields: Record<string, string | undefined> = {};
@@ -191,7 +193,7 @@ export const editAccountInformation = mutation({
 
 export const updateSecurityInformation = mutation({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
     // currentPassword: v.string(),
     newPassword: v.optional(v.string()),
     email: v.string(),
@@ -200,23 +202,23 @@ export const updateSecurityInformation = mutation({
   handler: async (ctx, args) => {
     // Verify if there is a current user logged in
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new ConvexError("Not authenticated");
+    if (!userId) throw new ConvexError('Not authenticated');
 
     // Get the current user from the database
     const user = await ctx.db.get(userId);
-    if (!user) throw new ConvexError("User not found");
+    if (!user) throw new ConvexError('User not found');
 
     // Only allow user to update their own account
-    if (user._id !== args.userId) throw new ConvexError("Unauthorized");
+    if (user._id !== args.userId) throw new ConvexError('Unauthorized');
 
     // Check for email duplication
     if (args.email !== user.email) {
       const userWithSameEmail = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("email"), args.email))
+        .query('users')
+        .filter((q) => q.eq(q.field('email'), args.email))
         .first();
       if (userWithSameEmail && userWithSameEmail._id !== args.userId) {
-        throw new ConvexError("A user with this email already exists");
+        throw new ConvexError('A user with this email already exists');
       }
     }
 
@@ -224,20 +226,21 @@ export const updateSecurityInformation = mutation({
     try {
       // @ts-expect-error - type error in convex
       await modifyAccountCredentials(ctx, {
-        provider: "password",
+        provider: 'password',
         account: {
           id: user.email,
           secret: args.newPassword,
         },
       });
     } catch (error) {
-      throw new ConvexError("Failed to update password");
+      throw new ConvexError('Failed to update password');
     }
 
     // Update email and phone number
     const updateFields: Record<string, string | undefined> = {};
     if (args.email !== user.email) updateFields.email = args.email;
-    if (args.phoneNumber !== undefined) updateFields.phoneNumber = args.phoneNumber;
+    if (args.phoneNumber !== undefined)
+      updateFields.phoneNumber = args.phoneNumber;
 
     if (Object.keys(updateFields).length > 0) {
       await ctx.db.patch(args.userId, updateFields);

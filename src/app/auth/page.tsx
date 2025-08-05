@@ -1,12 +1,11 @@
-import React from 'react'
-import { AuthScreen } from './_components/auth-screen'
+import { AuthScreen } from './_components/auth-screen';
 
 function Page() {
   return (
     <div>
-      <AuthScreen/>
+      <AuthScreen />
     </div>
-  )
+  );
 }
 
-export default Page
+export default Page;

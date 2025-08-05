@@ -1,15 +1,12 @@
-"use client";
-import React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FaSpinner } from "react-icons/fa";
-import { Button } from "./ui/button";
-import Link from "next/link";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useCurrentUser } from "@/hooks/use-current-user";
+'use client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import Link from 'next/link';
+import { FaSpinner } from 'react-icons/fa';
+import { Button } from './ui/button';
 
 export default function UserAvatar() {
   const { user, isLoading } = useCurrentUser();
-  const { signOut } = useAuthActions();
 
   if (isLoading) {
     return (
@@ -26,13 +23,13 @@ export default function UserAvatar() {
 
   return user ? (
     <Avatar className="h-8 w-8">
-      <AvatarImage src={user.image || "/placeholder.svg"} alt="User" />
+      <AvatarImage src={user.image || '/placeholder.svg'} alt="User" />
       <AvatarFallback className="bg-gray-800 text-white">
         {user.fname.charAt(0)} {user.lname.charAt(0)}
       </AvatarFallback>
     </Avatar>
   ) : (
-    <Link href={"/auth"}>
+    <Link href={'/auth'}>
       <Button className="">Sign In</Button>
     </Link>
   );

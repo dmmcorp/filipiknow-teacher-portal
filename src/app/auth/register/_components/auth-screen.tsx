@@ -1,14 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { SignInCard } from "./sign-in-card";
-import { SignUpCard } from "./sign-up-card";
-import { useConvexAuth } from "convex/react";
-import { AuthFlow } from "@/lib/types";
+import { AuthFlow } from '@/lib/types';
+import { useState } from 'react';
+import { SignInCard } from './sign-in-card';
+import { SignUpCard } from './sign-up-card';
 
 export const AuthScreen = () => {
-  const [state, setState] = useState<AuthFlow>("signIn");
-  const { isAuthenticated } = useConvexAuth();
+  const [state, setState] = useState<AuthFlow>('signIn');
 
   // if (isAuthenticated) {
   //   return <RoleCheck />;
@@ -37,18 +35,14 @@ export const AuthScreen = () => {
             </div> */}
 
       <div className="hidden lg:w-[50%] bg-gradient-to-b from-primary to-primary/70 lg:flex lg:flex-col lg:justify-center lg:items-center text-white px-[76px]">
-        <h1 className="text-3xl font-bold mb-4 text-center">
-         
-        </h1>
-        <p className="text-lg font-medium">
-       
-        </p>
+        <h1 className="text-3xl font-bold mb-4 text-center"></h1>
+        <p className="text-lg font-medium"></p>
       </div>
 
       <div className="h-full w-full lg:w-[50%] flex flex-col flex-1 items-center justify-center bg-gradient-to-b from-primary to-primary/70">
         <div className="h-full flex items-center justify-center ">
           <div className="md:h-auto md:w-[420px]">
-            {state === "signIn" ? (
+            {state === 'signIn' ? (
               <SignInCard setState={setState} />
             ) : (
               <SignUpCard setState={setState} />
