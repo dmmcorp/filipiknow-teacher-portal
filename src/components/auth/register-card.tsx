@@ -167,6 +167,12 @@ export const RegisterCard = ({
       return;
     }
 
+    if (!image || image.length <= 0) {
+      setError("You must upload a profile picture");
+      setIsSubmitting(false);
+      return;
+    }
+
     if (!agreements.terms || !agreements.privacy) {
       setError("You must agree to the Terms and Privacy Policy");
       setIsSubmitting(false);
@@ -463,8 +469,15 @@ export const RegisterCard = ({
             </div>
 
             <div className="w-full flex justify-center items-center">
-              <Button className="w-full sm:w-[300px]" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Account"}
+              <Button
+                className="w-full sm:w-[300px]"
+                disabled={isSubmitting || isUploading}
+              >
+                {isSubmitting
+                  ? "Creating..."
+                  : isUploading
+                    ? "Uploading..."
+                    : "Create account"}
               </Button>
             </div>
           </form>
