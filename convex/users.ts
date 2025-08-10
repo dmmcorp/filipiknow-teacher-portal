@@ -126,6 +126,8 @@ export const createAccount = httpAction(async (ctx, request) => {
   let userId: Id<'users'> | undefined = undefined;
   if (fname || lname || email || password || gradeLevel || section) {
     const sectionId: Id<'sections'> = section;
+
+    console.log(sectionId);
     userId = await ctx.runAction(internal.users.createStudentAccount, {
       fname,
       lname,

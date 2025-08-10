@@ -6,7 +6,7 @@ import { internalQuery, query } from './_generated/server';
 
 export const getCharacterData = internalQuery({
   args: {
-    scenes: v.array(
+    dialogues: v.array(
       v.object({
         sceneNumber: v.number(), // e.g. 1, 2, 3
         speakerId: v.optional(v.id('characters')),
@@ -22,27 +22,30 @@ export const getCharacterData = internalQuery({
     ),
   },
   handler: async (ctx, args) => {
-    const scenesWithSpeaker = await asyncMap(args.scenes, async (scene) => {
-      if (!scene.speakerId) {
-        return null;
-      }
-      const character = await ctx.db.get(scene.speakerId);
-      if (!character) {
-        return null;
-      }
+    const scenesWithSpeaker = await asyncMap(
+      args.dialogues,
+      async (dialogue) => {
+        if (!dialogue.speakerId) {
+          return null;
+        }
+        const character = await ctx.db.get(dialogue.speakerId);
+        if (!character) {
+          return null;
+        }
 
-      const imgUrl = character.image
-        ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
-        : '';
+        const imgUrl = character.image
+          ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
+          : '';
 
-      return {
-        ...scene,
-        speaker: {
-          name: character.name,
-          image: imgUrl,
-        },
-      };
-    });
+        return {
+          ...dialogue,
+          speaker: {
+            name: character.name,
+            image: imgUrl,
+          },
+        };
+      }
+    );
 
     //get Character Image
 

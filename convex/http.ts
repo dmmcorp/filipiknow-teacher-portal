@@ -4,6 +4,7 @@ import { httpRouter } from 'convex/server';
 import { api, internal } from './_generated/api';
 import { httpAction } from './_generated/server';
 import { auth } from './auth';
+import { getDialogue } from './chapters';
 import { httpAllSections } from './sections';
 import { getStudentInfoAndProgress } from './students';
 import { createAccount } from './users';
@@ -205,4 +206,9 @@ http.route({
   handler: httpAllSections,
 });
 
+http.route({
+  path: '/getChapterDialogues',
+  method: 'POST',
+  handler: getDialogue,
+});
 export default http;
