@@ -88,7 +88,8 @@ export const createStudentAccount = internalAction({
     image: v.optional(v.string()),
     password: v.string(),
     gradeLevel: v.string(),
-    section: v.id("sections"),
+    // section: v.id("sections"), REVERT BACK WHEN PRESENTATION IS DONE
+    section: v.string(),
   },
   handler: async (ctx, args) => {
     try {
@@ -98,7 +99,7 @@ export const createStudentAccount = internalAction({
         email: args.email,
         password: args.password,
         gradeLevel: args.gradeLevel,
-        section: args.section,
+        section: args.section as Id<"sections">,
       });
       return result;
     } catch (error) {

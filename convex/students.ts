@@ -11,7 +11,8 @@ import {
 export const createStudent = internalMutation({
   args: {
     userId: v.id("users"),
-    section: v.id("sections"),
+    // section: v.id("sections"), // irrevert to once tapus na yung presentation
+    section: v.string(),
     gradeLevel: v.string(),
   },
   handler: async (ctx, args) => {
