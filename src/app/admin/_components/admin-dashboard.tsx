@@ -51,7 +51,7 @@ function AdminDashboard() {
     <div className="flex-1 container mx-auto py-3 md:py-6 flex flex-col">
       <section className="flex justify-between mb-3">
         <div>
-          <h1 className="">Dashboard</h1>
+          <h1 className="text-3xl font-semibold">Dashboard</h1>
           <p className="text-muted-foreground">
             This dashboard page allows admins to manage chapters and characters
             for &quot;Noli Me Tangere&quot; and &quot;El Filibusterismo&quot;

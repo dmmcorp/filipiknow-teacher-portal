@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/table';
 import { useMutation, useQuery } from 'convex/react';
 import {
-  Calendar,
   Edit,
   MoreHorizontal,
   Plus,
@@ -41,6 +40,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
@@ -204,33 +204,47 @@ export const SectionsPanel = () => {
             Create and manage school sections with teacher assignments
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Section
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] bg-white">
-            <DialogHeader>
-              <DialogTitle>Create New Section</DialogTitle>
-              <DialogDescription>
-                Add a new section and assign teachers to it.
-              </DialogDescription>
-            </DialogHeader>
-            <SectionForm
-              onSubmit={handleCreateSubmit}
-              submitText="Create Section"
-              formData={formData}
-              setFormData={setFormData}
-              teachers={teachers}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-3">
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Section
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-white">
+              <DialogHeader>
+                <DialogTitle>Create New Section</DialogTitle>
+                <DialogDescription>
+                  Add a new section and assign teachers to it.
+                </DialogDescription>
+              </DialogHeader>
+              <SectionForm
+                onSubmit={handleCreateSubmit}
+                submitText="Create Section"
+                formData={formData}
+                setFormData={setFormData}
+                teachers={teachers}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Link
+            href="/admin"
+            className={buttonVariants({
+              variant: 'outline',
+            })}
+          >
+            Go back
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -253,7 +267,7 @@ export const SectionsPanel = () => {
             <div className="text-2xl font-bold">{teachers.length}</div>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Current School Year
@@ -263,7 +277,7 @@ export const SectionsPanel = () => {
           <CardContent>
             <div className="text-2xl font-bold">2024-2025</div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Sections Table */}

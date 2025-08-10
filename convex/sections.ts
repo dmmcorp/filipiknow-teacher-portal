@@ -115,3 +115,30 @@ export const getAllTeachers = query({
         return teachers
     }
 })
+
+export const getSectionsByUserId = query({
+    args: {
+        userId: v.id("users")
+    },
+    handler: async (ctx, args) => {
+        const teacherSections = await ctx.db
+            .query("teacher_sections")
+            .withIndex("by_teacher", (q) => q.eq("teacherId", args.userId))
+            .collect();
+
+        const sections = await Promise.all(
+            teacherSections.map(async (teacherSection) => {
+                const section = await ctx.db.get(teacherSection.sectionId)
+
+                const teacherDetails = await ctx.db.get(args.userId)
+
+                return {
+                    ...section,
+                    assignedTeacher: teacherDetails
+                }
+            })
+        )
+
+        return sections.filter(section => section !== null)
+    }
+})

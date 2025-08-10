@@ -1,48 +1,65 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { cn } from '@/lib/utils';
+import { useQuery } from 'convex/react';
 import {
-  ChevronDown,
-  Home,
   BookOpen,
+  ChevronDown,
   FileQuestion,
+  Home,
+  Loader2Icon,
   Settings,
-} from "lucide-react";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 export const Sidebar = () => {
+  const { user, isLoading } = useCurrentUser();
+  const userSections = useQuery(api.sections.getSectionsByUserId, {
+    userId: user?._id as Id<'users'>,
+  });
   const [isClassOpen, setIsClassOpen] = useState(false);
   const pathname = usePathname();
 
   const menuItems = [
     {
       icon: Home,
-      label: "Dashboard",
-      href: "/teacher",
-      active: pathname === "/teacher",
+      label: 'Dashboard',
+      href: '/teacher',
+      active: pathname === '/teacher',
     },
     {
       icon: BookOpen,
-      label: "Class",
+      label: 'Class',
       hasDropdown: true,
       isOpen: isClassOpen,
       onClick: () => setIsClassOpen(!isClassOpen),
     },
     {
       icon: FileQuestion,
-      label: "Quiz",
-      href: "/teacher/quizzes",
-      active: pathname === "/teacher/quizzes",
+      label: 'Quiz',
+      href: '/teacher/quizzes',
+      active: pathname === '/teacher/quizzes',
     },
     {
       icon: Settings,
-      label: "Settings",
-      href: "/teacher/settings",
-      active: pathname === "/teacher/settings",
+      label: 'Settings',
+      href: '/teacher/settings',
+      active: pathname === '/teacher/settings',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="w-64 bg-white border-r border-gray-200 flex items-center justify-center">
+        <Loader2Icon className="h-6 w-6 animate-spin text-orange-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -60,10 +77,10 @@ export const Sidebar = () => {
                 <Link
                   href={item.href}
                   className={cn(
-                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? "bg-gray-100 text-gray-900 font-medium"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? 'bg-gray-100 text-gray-900 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -75,10 +92,10 @@ export const Sidebar = () => {
                 <button
                   onClick={item.onClick}
                   className={cn(
-                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? "bg-gray-100 text-gray-900 font-medium"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? 'bg-gray-100 text-gray-900 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -88,8 +105,8 @@ export const Sidebar = () => {
                   {item.hasDropdown && (
                     <ChevronDown
                       className={cn(
-                        "w-4 h-4 transition-transform",
-                        item.isOpen && "rotate-180"
+                        'w-4 h-4 transition-transform',
+                        item.isOpen && 'rotate-180'
                       )}
                     />
                   )}
@@ -99,12 +116,25 @@ export const Sidebar = () => {
               {/* Dropdown content for Class */}
               {item.hasDropdown && item.isOpen && (
                 <div className="ml-8 mt-2 space-y-1">
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
-                    All Classes
-                  </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
-                    Create Class
-                  </button>
+                  {userSections?.map((section) => (
+                    <Link
+                      key={section._id}
+                      href={`/teacher/sections/${section._id}`}
+                      className={cn(
+                        'block px-3 py-2 rounded-lg text-sm transition-colors',
+                        pathname === `/teacher/sections/${section._id}`
+                          ? 'bg-gray-100 text-gray-900 font-medium'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      {section.name}
+                    </Link>
+                  ))}
+                  {!userSections?.length && (
+                    <p className="text-sm text-gray-500 px-3 py-2">
+                      No sections assigned
+                    </p>
+                  )}
                 </div>
               )}
             </div>
