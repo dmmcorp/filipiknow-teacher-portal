@@ -1,11 +1,12 @@
-import { httpRouter } from "convex/server";
-import { auth } from "./auth";
-import { createAccount } from "./users";
-import { httpAction } from "./_generated/server";
-import { api, internal } from "./_generated/api";
-import { getStudentInfoAndProgress } from "./students";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { getDialogue } from "./dialogues";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { httpRouter } from 'convex/server';
+import { api, internal } from './_generated/api';
+import { httpAction } from './_generated/server';
+import { auth } from './auth';
+import { httpAllSections } from './sections';
+import { getStudentInfoAndProgress } from './students';
+import { createAccount } from './users';
 
 const http = httpRouter();
 
@@ -14,30 +15,24 @@ auth.addHttpRoutes(http);
 // This route handles the creation of a new user account.
 // It checks if the user already exists and creates a new account if not.
 http.route({
-  path: "/createAccount",
-  method: "POST",
+  path: '/createAccount',
+  method: 'POST',
   handler: createAccount,
-});
-
-http.route({
-  path: "/getDialogue",
-  method: "GET",
-  handler: getDialogue,
 });
 
 // This route retrieves student information and progress based on the user ID provided in the request body.
 // It is used to get the student details for a specific user.
 http.route({
-  path: "/getStudentInfoAndProgress",
-  method: "POST",
+  path: '/getStudentInfoAndProgress',
+  method: 'POST',
   handler: getStudentInfoAndProgress,
 });
 
 // Sign in route
 // This route handles user sign in
 http.route({
-  path: "/api/auth/signin",
-  method: "POST",
+  path: '/api/auth/signin',
+  method: 'POST',
   handler: httpAction(async (ctx, request) => {
     try {
       const body = await request.json();
@@ -45,14 +40,14 @@ http.route({
 
       if (!email || !password) {
         return new Response(
-          JSON.stringify({ error: "Email and password are required" }),
+          JSON.stringify({ error: 'Email and password are required' }),
           {
             status: 400,
             headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Methods": "POST, OPTIONS",
-              "Access-Control-Allow-Headers": "Content-Type",
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type',
             },
           }
         );
@@ -60,44 +55,44 @@ http.route({
 
       // Use the built-in Convex Auth signIn with Password provider
       const result = await ctx.runAction(api.auth.signIn, {
-        provider: "password",
+        provider: 'password',
         params: {
           email,
           password,
-          flow: "signIn",
+          flow: 'signIn',
         },
       });
       const userId = await ctx.runQuery(internal.users.getUserIdByEmail, {
         email,
       });
-      console.log("userData:", userId);
+      console.log('userData:', userId);
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Signed in successfully",
+          message: 'Signed in successfully',
           userId: userId,
           result,
         }),
         {
           status: 200,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
     } catch (error: any) {
-      console.error("Signin error:", error);
+      console.error('Signin error:', error);
 
       return new Response(
         JSON.stringify({
-          error: error.message || "Invalid email or password",
+          error: error.message || 'Invalid email or password',
         }),
         {
           status: 401,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
@@ -108,19 +103,19 @@ http.route({
 // call this route to check if the user is authenticated
 // Get current user info
 http.route({
-  path: "/api/auth/me",
-  method: "POST",
+  path: '/api/auth/me',
+  method: 'POST',
   handler: httpAction(async (ctx, request) => {
     try {
       // Get the current user using the logged in user query
       const user = await ctx.runQuery(api.auth.loggedInUser);
 
       if (!user) {
-        return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        return new Response(JSON.stringify({ error: 'Not authenticated' }), {
           status: 401,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         });
       }
@@ -138,23 +133,23 @@ http.route({
         {
           status: 200,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
     } catch (error: any) {
-      console.error("Get user error:", error);
+      console.error('Get user error:', error);
 
       return new Response(
         JSON.stringify({
-          error: error.message || "Failed to get user info",
+          error: error.message || 'Failed to get user info',
         }),
         {
           status: 500,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
@@ -165,8 +160,8 @@ http.route({
 // Sign out
 // This route handles user sign out
 http.route({
-  path: "/api/auth/signout",
-  method: "POST",
+  path: '/api/auth/signout',
+  method: 'POST',
   handler: httpAction(async (ctx, request) => {
     try {
       // Use the built-in Convex Auth signOut
@@ -175,33 +170,39 @@ http.route({
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Signed out successfully",
+          message: 'Signed out successfully',
         }),
         {
           status: 200,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
     } catch (error: any) {
-      console.error("Signout error:", error);
+      console.error('Signout error:', error);
 
       return new Response(
         JSON.stringify({
-          error: error.message || "Failed to sign out",
+          error: error.message || 'Failed to sign out',
         }),
         {
           status: 500,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
         }
       );
     }
   }),
+});
+
+http.route({
+  path: '/getAllSections',
+  method: 'GET',
+  handler: httpAllSections,
 });
 
 export default http;

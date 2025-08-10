@@ -1,4 +1,4 @@
-import { Doc, Id } from '../../convex/_generated/dataModel';
+import { Id } from '../../convex/_generated/dataModel';
 
 export type AuthFlow = 'signIn' | 'signUp';
 
@@ -20,7 +20,6 @@ export interface SceneTypes {
   text: string;
 }
 
-export type DialogueType = Doc<'dialogues'>;
 export interface ChaptersType {
   chapter: number;
   levels: number;
@@ -46,8 +45,8 @@ export interface CharacterDialogueType {
   text: string;
 }
 
-//type for getChapterData query in a convex/dialogue.ts
-export interface GetChapterDataType {
-  chapterData: Doc<'dialogues'>;
-  levels: LevelsType[];
-}
+// //type for getChapterData query in a convex/dialogue.ts
+// export interface GetChapterDataType {
+//   chapterData: Doc<'dialogues'>;
+//   levels: LevelsType[];
+// }

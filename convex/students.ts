@@ -1,17 +1,17 @@
-import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { v } from 'convex/values';
+import { internal } from './_generated/api';
 import {
   httpAction,
   internalMutation,
   internalQuery,
-} from "./_generated/server";
+} from './_generated/server';
 
 // This function creates a new student record in the database.
 // It checks if the user already has a student record before creating a new one.
 export const createStudent = internalMutation({
   args: {
-    userId: v.id("users"),
-    section: v.id("sections"),
+    userId: v.id('users'),
+    section: v.id('sections'),
     gradeLevel: v.string(),
   },
   handler: async (ctx, args) => {
@@ -19,12 +19,12 @@ export const createStudent = internalMutation({
 
     // Check if the user already has a student record
     const existingStudent = await ctx.db
-      .query("students")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query('students')
+      .withIndex('by_userId', (q) => q.eq('userId', args.userId))
       .first();
 
     if (existingStudent) {
-      throw new Error("Student record already exists for this user.");
+      throw new Error('Student record already exists for this user.');
     }
     const student = {
       userId,
@@ -32,7 +32,7 @@ export const createStudent = internalMutation({
       gradeLevel,
     };
 
-    const studentId = await ctx.db.insert("students", student);
+    const studentId = await ctx.db.insert('students', student);
     return studentId;
   },
 });
@@ -41,19 +41,19 @@ export const createStudent = internalMutation({
 // It is used to fetch the student information associated with a specific user.
 export const getStudentByUserId = internalQuery({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
   },
   handler: async (ctx, args) => {
     const { userId } = args;
 
     // Fetch the student record by userId
     const student = await ctx.db
-      .query("students")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .query('students')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first();
 
     if (!student) {
-      throw new Error("Student not found for the given user ID.");
+      throw new Error('Student not found for the given user ID.');
     }
 
     return student;
@@ -67,11 +67,11 @@ export const getStudentInfoAndProgress = httpAction(async (ctx, request) => {
     const { userId } = await request.json();
 
     if (!userId) {
-      return new Response(JSON.stringify({ error: "User ID is required" }), {
+      return new Response(JSON.stringify({ error: 'User ID is required' }), {
         status: 400,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     }
@@ -80,11 +80,11 @@ export const getStudentInfoAndProgress = httpAction(async (ctx, request) => {
       userId,
     });
     if (!student) {
-      return new Response(JSON.stringify({ error: "Student not found" }), {
+      return new Response(JSON.stringify({ error: 'Student not found' }), {
         status: 404,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     }
@@ -102,19 +102,20 @@ export const getStudentInfoAndProgress = httpAction(async (ctx, request) => {
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       }
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return new Response(
-      JSON.stringify({ error: error?.message || "Internal server error" }),
+      JSON.stringify({ error: error?.message || 'Internal server error' }),
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       }
     );

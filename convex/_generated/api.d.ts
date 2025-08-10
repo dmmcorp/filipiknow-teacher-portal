@@ -15,9 +15,7 @@ import type {
 } from "convex/server";
 import type * as auth from "../auth.js";
 import type * as characters from "../characters.js";
-import type * as dialogues from "../dialogues.js";
 import type * as files from "../files.js";
-import type * as helpers_dialogues from "../helpers/dialogues.js";
 import type * as helpers_users from "../helpers/users.js";
 import type * as http from "../http.js";
 import type * as progress from "../progress.js";
@@ -36,9 +34,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   characters: typeof characters;
-  dialogues: typeof dialogues;
   files: typeof files;
-  "helpers/dialogues": typeof helpers_dialogues;
   "helpers/users": typeof helpers_users;
   http: typeof http;
   progress: typeof progress;

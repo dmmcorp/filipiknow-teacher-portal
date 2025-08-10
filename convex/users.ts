@@ -88,7 +88,7 @@ export const createStudentAccount = internalAction({
     image: v.optional(v.string()),
     password: v.string(),
     gradeLevel: v.string(),
-    section: v.id("sections"),
+    section: v.id('sections'),
   },
   handler: async (ctx, args) => {
     try {
@@ -98,7 +98,7 @@ export const createStudentAccount = internalAction({
         email: args.email,
         password: args.password,
         gradeLevel: args.gradeLevel,
-        section: args.section,
+        section: args.section, //sectionId
       });
       return result;
     } catch (error) {
@@ -125,13 +125,14 @@ export const createAccount = httpAction(async (ctx, request) => {
   }
   let userId: Id<'users'> | undefined = undefined;
   if (fname || lname || email || password || gradeLevel || section) {
+    const sectionId: Id<'sections'> = section;
     userId = await ctx.runAction(internal.users.createStudentAccount, {
       fname,
       lname,
       email,
       password,
       gradeLevel,
-      section,
+      section: sectionId,
     });
   }
 
