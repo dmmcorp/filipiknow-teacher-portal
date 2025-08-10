@@ -24,7 +24,7 @@ const schema = defineSchema({
 
   students: defineTable({
     userId: v.id('users'),
-    section: v.string(),
+    section: v.id('sections'),
     gradeLevel: v.string(),
   }).index('by_userId', ['userId']),
 
@@ -101,6 +101,85 @@ const schema = defineSchema({
     current_level: v.number(), // e.g. level 2
     completed: v.number(), // e.g. 0, 1, 2, 3, 4, 5
   }).index('by_studentId', ['studentId']),
+
+  games: defineTable({
+    teacherId: v.id('users'), // who uploaded the game
+    section: v.id('sections'), // e.g. "Section 1" links directly to sections
+    gradeLevel: v.string(), // e.g. "Grade 9"
+    novel: v.union(
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
+    ),
+    kabanata: v.number(), // 1–64 for Noli, 1–39 for El Fili
+    level: v.number(), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
+    gameType: v.union(
+      v.literal('4pics1word'),
+      v.literal('multipleChoice'),
+      v.literal('jigsawPuzzle'),
+      v.literal('whoSaidIt')
+    ),
+
+    // Content for 4pics1word
+    fourPicsOneWord: v.optional(
+      v.object({
+        images: v.array(v.string()), // 4 image URLs
+        clue: v.string(), // ex: "She's known for her devotion and faith in the novel"
+        answer: v.string(), // e.g. "Maria Clara"
+      })
+    ),
+
+    // Content for multiple choice
+    multipleChoice: v.optional(
+      v.object({
+        question: v.string(), // e.g. "Sinong tauhan sa kwento ang nagalit sa ‘Tinola’?"
+        image: v.optional(v.string()), // optional image for the question (e.g. Tinola)
+        options: v.array(
+          v.object({
+            text: v.string(), // e.g. "Crisostomo Ibarra"
+            image: v.optional(v.string()), // optional image for the choice
+            isCorrect: v.optional(v.boolean()), // true for the correct answer
+          })
+        ), // 4 choices, each can have image
+      })
+    ),
+
+    // Content for jigsaw puzzle
+    jigsawPuzzle: v.optional(
+      v.object({
+        image: v.string(), // puzzle image
+        rows: v.number(), // number of rows
+        columns: v.number(), // number of columns
+      })
+    ),
+
+    whoSaidIt: v.object({
+      question: v.string(), // e.g. "Sino sa mga nasa litrato ang nagsabi sa linyang ito:"
+      quote: v.string(), // e.g. "Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!"
+      hint: v.optional(v.string()), // e.g. "Isa siyang indiyo na naging padre"
+      options: v.array(
+        v.object({
+          name: v.string(), // e.g. "Padre Damaso"
+          image: v.optional(v.string()), // e.g. "https://example.com/padre_damaso.jpg"
+          isCorrect: v.optional(v.boolean()), // true for the correct answer
+        })
+      ),
+    }),
+  }).index(
+    'by_section_kabanata_level',
+    ['section', 'kabanata', 'level']
+  ),
+
+  sections: defineTable({
+    name: v.string(), // e.g. "Section 1"
+    gradeLevel: v.string(), // e.g. "Grade 9"
+    schoolYear: v.string() // e.g. "2025-2026" need to kasi ito lang tanging identification kung which batch yung mga students
+  }),
+
+  teacher_sections: defineTable({
+    teacherId: v.id('users'),
+    sectionId: v.id('sections'),
+  }).index('by_teacher', ['teacherId'])
+    .index('by_section', ['sectionId']),
 });
 
 export default schema;

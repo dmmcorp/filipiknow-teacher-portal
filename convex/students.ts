@@ -1,17 +1,17 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import {
   httpAction,
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 // This function creates a new student record in the database.
 // It checks if the user already has a student record before creating a new one.
 export const createStudent = internalMutation({
   args: {
     userId: v.id("users"),
-    section: v.string(),
+    section: v.id("sections"),
     gradeLevel: v.string(),
   },
   handler: async (ctx, args) => {

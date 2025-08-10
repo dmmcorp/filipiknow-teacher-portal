@@ -88,7 +88,7 @@ export const createStudentAccount = internalAction({
     image: v.optional(v.string()),
     password: v.string(),
     gradeLevel: v.string(),
-    section: v.string(),
+    section: v.id("sections"),
   },
   handler: async (ctx, args) => {
     try {

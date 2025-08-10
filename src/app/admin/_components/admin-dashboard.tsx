@@ -1,5 +1,5 @@
 'use client';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -49,6 +49,24 @@ function AdminDashboard() {
   const filteredChapters = filterChapters();
   return (
     <div className="flex-1 container mx-auto py-3 md:py-6 flex flex-col">
+      <section className="flex justify-between mb-3">
+        <div>
+          <h1 className="">Dashboard</h1>
+          <p className="text-muted-foreground">
+            This dashboard page allows admins to manage chapters and characters
+            for &quot;Noli Me Tangere&quot; and &quot;El Filibusterismo&quot;
+            with stats, search, and editing features.
+          </p>
+        </div>
+        <Link
+          href="/admin/sections"
+          className={buttonVariants({
+            variant: 'default',
+          })}
+        >
+          Sections Management
+        </Link>
+      </section>
       {statsOverview && <StatsOverview {...statsOverview} />}
       {/* Novel Selection & Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
