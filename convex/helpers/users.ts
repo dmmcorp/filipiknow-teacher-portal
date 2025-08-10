@@ -1,7 +1,6 @@
 import { createAccount } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
 import { ActionCtx } from "../_generated/server";
 
 export async function createUser(
@@ -12,7 +11,8 @@ export async function createUser(
     email: string;
     password: string;
     gradeLevel: string;
-    section: Id<"sections">; // Section is required
+    // section: Id<"sections">; // TODO: REVERT TO THIS WHEN PRESENTATION IS DONE
+    section: string; // Section is required
   }
 ) {
   const { fname, lname, email, password, gradeLevel, section } = userData;

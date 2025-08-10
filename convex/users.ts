@@ -99,7 +99,8 @@ export const createStudentAccount = internalAction({
         email: args.email,
         password: args.password,
         gradeLevel: args.gradeLevel,
-        section: args.section as Id<"sections">,
+        // TODO: ignore for now no error to if irerevert sa sections
+        section: args.section,
       });
       return result;
     } catch (error) {
