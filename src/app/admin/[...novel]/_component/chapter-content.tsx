@@ -1,23 +1,15 @@
 'use client';
 
 import BackBtn from '@/components/back-btn';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectGroup,
-  SelectItem,
   SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { useQuery } from 'convex/react';
-import { BookOpen } from 'lucide-react';
 import { useState } from 'react';
-import { api } from '../../../../../convex/_generated/api';
-import Loading from '../loading';
 interface ChapterContentProps {
   novel: string;
   chapterNo: number;
@@ -29,13 +21,10 @@ function ChapterContent({
   chapterTitle,
 }: ChapterContentProps) {
   const [selectedLevel, setSelectedLevel] = useState<string | undefined>();
-  const chapterData = useQuery(api.dialogues.getChapterData, {
-    novel,
-    chapter: chapterNo,
-  });
-  if (!chapterData) {
-    return <Loading />;
-  }
+
+  // if (!chapterData) {
+  //   return <Loading />;
+  // }
   return (
     <div className="">
       {/* header */}
@@ -47,7 +36,7 @@ function ChapterContent({
         </h1>
       </div>
       {/* if the chapterData has return value of error */}
-      {chapterData.error && (
+      {/* {chapterData.error && (
         <Card className="">
           <CardContent>
             <div className="flex flex-col items-center justify-center">
@@ -56,13 +45,13 @@ function ChapterContent({
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
       {/* if there are no errors */}
       <div className="md:grid md:grid-cols-3 md:gap-x-3 bg-white shadow rounded-2xl p-3 h-[80vh]">
         <div className="flex items-center h-fit justify-start md:flex-col col-span-3 md:col-span-1">
           <div className="hidden md:block w-full">
             <h3 className=" w-full font-semibold text-xl">Select Level</h3>
-            {chapterData.levels?.map((level) => (
+            {/* {chapterData.levels?.map((level) => (
               <Button
                 key={`Level: ${level.level}`}
                 variant={'ghost'}
@@ -76,7 +65,7 @@ function ChapterContent({
               >
                 Level {level.level}
               </Button>
-            ))}
+            ))} */}
           </div>
           <div className="flex-1/4 md:hidden w-full bg-amber-200">
             <Select>
@@ -86,14 +75,14 @@ function ChapterContent({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Levels</SelectLabel>
-                  {chapterData.levels?.map((level) => (
+                  {/* {chapterData.levels?.map((level) => (
                     <SelectItem
                       key={`Level: ${level.level.toString()}`}
                       value={level.level.toString()}
                     >
                       {level.level}
                     </SelectItem>
-                  ))}
+                  ))} */}
                 </SelectGroup>
               </SelectContent>
             </Select>

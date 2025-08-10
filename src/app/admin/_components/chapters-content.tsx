@@ -3,26 +3,23 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, geistEfcaFont } from '@/lib/utils';
-import { useQuery } from 'convex/react';
 import { useState } from 'react';
-import { api } from '../../../../convex/_generated/api';
 import ChapterForm from './chapter-form';
-import NovelTabContent from './novel-tab-content';
 
 function MainContent() {
-  const dialogues = useQuery(api.dialogues.getAllDialogues, {});
+  // const dialogues = useQuery(api.dialogues.getAllDialogues, {});
   const [selectedNovel, setSelectedNovel] = useState<string>('noli');
 
-  if (!dialogues) {
-    return (
-      <div className="flex-1 container bg-gray-100 mx-auto py-10 flex justify-center items-center">
-        <p className="text-gray-500">Loading dialogues...</p>
-      </div>
-    );
-  }
+  // if (!dialogues) {
+  //   return (
+  //     <div className="flex-1 container bg-gray-100 mx-auto py-10 flex justify-center items-center">
+  //       <p className="text-gray-500">Loading dialogues...</p>
+  //     </div>
+  //   );
+  // }
 
-  const noli = dialogues.noli;
-  const elFili = dialogues.elFili;
+  // const noli = dialogues.noli;
+  // const elFili = dialogues.elFili;
   console.log(selectedNovel);
   return (
     <div className="flex-1 container mx-auto flex">
@@ -37,22 +34,22 @@ function MainContent() {
           >
             <TabsTrigger
               value={'noli'}
-              disabled={noli.length === 0}
+              // disabled={noli.length === 0}
               className="text-xl"
             >
               Noli me tangere
               <Badge variant="secondary" className="ml-2 text-xs">
-                {noli.length}
+                {/* {noli.length} */}
               </Badge>
             </TabsTrigger>
             <TabsTrigger
               value={'elfili'}
-              disabled={elFili.length === 0}
+              // disabled={elFili.length === 0}
               className="text-xl"
             >
               El Filibusterismo
               <Badge variant="secondary" className="ml-2 text-xs">
-                {elFili.length}
+                {/* {elFili.length} */}
               </Badge>
             </TabsTrigger>
           </TabsList>
@@ -61,7 +58,7 @@ function MainContent() {
             className="px-3 md:px-6 grid grid-cols-12 gap-5"
           >
             <div className="col-span-7  overflow-auto h-[65vh]">
-              <NovelTabContent chapters={noli} />
+              {/* <NovelTabContent chapters={noli} /> */}
             </div>
             <div className="col-span-5 shadow p-2  h-[65vh] max-h-[65vh] overflow-auto">
               <ChapterForm />
@@ -72,7 +69,7 @@ function MainContent() {
             className="px-3 md:px-6 grid grid-cols-12 gap-5"
           >
             <div className="col-span-7  overflow-auto h-[65vh]">
-              <NovelTabContent chapters={elFili} />
+              {/* <NovelTabContent chapters={elFili} /> */}
             </div>
             <div className="col-span-5  h-[65vh] max-h-[65vh] overflow-auto">
               <ChapterForm />

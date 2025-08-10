@@ -11,42 +11,31 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { useQuery } from 'convex/react';
-import {
-  BarChart3,
-  BookOpen,
-  Edit,
-  Eye,
-  MessageSquare,
-  Plus,
-  Search,
-  Trash2,
-  Users,
-} from 'lucide-react';
+import { BookOpen, Edit, Plus, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
-import StatsOverview from './stats-overview';
 type NovelType = 'Noli me tangere' | 'El filibusterismo';
 
 //NOTE: novel title is case sensitive e.g: Noli me tangere is correct while Noli Me Tangere is wrong.
 function AdminDashboard() {
-  const statsOverview = useQuery(api.dialogues.getStatsOverview, {});
-  const chapters = useQuery(api.dialogues.getAllDialogues, {});
+  // const statsOverview = useQuery(api.dialogues.getStatsOverview, {});
+  // const chapters = useQuery(api.dialogues.getAllDialogues, {});
   const characters = useQuery(api.characters.getCharacters, {});
 
   const [selectedNovel, setSelectedNovel] =
     useState<NovelType>('Noli me tangere');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filterChapters = () => {
-    if (selectedNovel === 'El filibusterismo') {
-      return chapters?.elFili;
-    } else {
-      return chapters?.noli;
-    }
-  };
+  // const filterChapters = () => {
+  //   if (selectedNovel === 'El filibusterismo') {
+  //     return chapters?.elFili;
+  //   } else {
+  //     return chapters?.noli;
+  //   }
+  // };
 
-  const filteredChapters = filterChapters();
+  // const filteredChapters = filterChapters();
   return (
     <div className="flex-1 container mx-auto py-3 md:py-6 flex flex-col">
       <section className="flex justify-between mb-3">
@@ -67,7 +56,7 @@ function AdminDashboard() {
           Sections Management
         </Link>
       </section>
-      {statsOverview && <StatsOverview {...statsOverview} />}
+      {/* {statsOverview && <StatsOverview {...statsOverview} />} */}
       {/* Novel Selection & Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <Tabs
@@ -126,7 +115,7 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4 h-[45vh] max-h-[45vh] overflow-auto">
-                {filteredChapters && filteredChapters.length !== 0 ? (
+                {/* {filteredChapters && filteredChapters.length !== 0 ? (
                   filteredChapters.map((chapter) => (
                     <Card
                       key={chapter.chapter}
@@ -196,7 +185,16 @@ function AdminDashboard() {
                       chapter.
                     </p>
                   </div>
-                )}
+                )} */}
+                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                  <BookOpen className="w-8 h-8 mb-2" />
+                  <p className="font-medium">
+                    No chapters have been added yet.
+                  </p>
+                  <p className="text-sm">
+                    Click &quot;Add Chapter&quot; to create your first chapter.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
