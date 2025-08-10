@@ -12,17 +12,17 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthLoading && !isRoleLoading) {
       if (!isAuthenticated) {
-        router.push('/');
+        window.location.href = '/';
       }
 
       if (role !== 'admin') {
         // Redirect non-admin users to appropriate routes
         switch (role) {
           case 'teacher':
-            router.push('/teacher');
+            router.replace('/teacher');
             break;
           default:
-            router.push('/');
+            window.location.href = '/';
         }
         return;
       }

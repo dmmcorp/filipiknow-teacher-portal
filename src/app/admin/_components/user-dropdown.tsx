@@ -24,6 +24,8 @@ export const UserDropdown = () => {
 
   const handleSignOut = async () => {
     await signOut();
+
+    window.location.href = '/';
   };
   return (
     <div className="">
