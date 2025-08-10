@@ -142,3 +142,57 @@ export const getSectionsByUserId = query({
         return sections.filter(section => section !== null)
     }
 })
+
+// if ever need yung teacher na naka assign sa section na ito uncomment yung teacherAssignment
+// sa ngayon hindi pa naman so, as is muna natin na section lang muna ang nirereturn
+export const getSectionById = query({
+    args: {
+        sectionId: v.id("sections")
+    },
+    handler: async (ctx, args) => {
+        const section = await ctx.db.get(args.sectionId)
+
+        return section;
+    }
+})
+
+export const getSectionByIdWithStudents = query({
+    args: {
+        sectionId: v.id("sections")
+    },
+    handler: async (ctx, args) => {
+        const section = await ctx.db.get(args.sectionId)
+        if (!section) return null;
+
+        const teacherAssignment = await ctx.db
+            .query("teacher_sections")
+            .withIndex("by_section", (q) => q.eq("sectionId", args.sectionId))
+            .first();
+
+        let assignedTeacher = null;
+        if (teacherAssignment) {
+            assignedTeacher = await ctx.db.get(teacherAssignment.teacherId)
+        }
+
+        const students = await ctx.db
+            .query("students")
+            .filter((q) => q.eq(q.field("section"), args.sectionId))
+            .collect()
+
+        const studentsWithDetails = await Promise.all(
+            students.map(async (student) => {
+                const userDetails = await ctx.db.get(student.userId);
+                return {
+                    ...student,
+                    userDetails
+                }
+            })
+        )
+
+        return {
+            ...section,
+            assignedTeacher,
+            students: studentsWithDetails,
+        }
+    }
+})
