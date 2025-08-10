@@ -24,7 +24,8 @@ export const UserDropdown = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    console.log('isauth:', isAuthenticated);
+
+    window.location.href = '/';
   };
   return (
     <div className="fixed top-4 right-4 z-50">
