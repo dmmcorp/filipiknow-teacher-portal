@@ -52,6 +52,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -286,11 +287,12 @@ export default function QuizManagement() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
               {previewQuiz.fourPicsOneWord?.images.map((image, index) => (
-                <img
+                <Image
                   key={index}
                   src={image || '/placeholder.svg'}
                   alt={`Image ${index + 1}`}
                   className="w-full h-24 object-cover rounded border"
+                  fill
                 />
               ))}
             </div>
@@ -355,7 +357,7 @@ export default function QuizManagement() {
             <div>
               <Label className="font-medium">Quote:</Label>
               <p className="text-sm italic text-gray-600 mt-1">
-                "{previewQuiz.whoSaidIt?.quote}"
+                &quot;{previewQuiz.whoSaidIt?.quote}&quot;
               </p>
             </div>
             {previewQuiz.whoSaidIt?.hint && (
@@ -396,10 +398,11 @@ export default function QuizManagement() {
           <div className="space-y-4">
             <div>
               <Label className="font-medium">Puzzle Image:</Label>
-              <img
+              <Image
                 src={previewQuiz.jigsawPuzzle?.image || '/placeholder.svg'}
                 alt="Puzzle"
                 className="w-full max-w-xs h-48 object-cover rounded border mt-2"
+                fill
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -434,7 +437,9 @@ export default function QuizManagement() {
             View, edit, and manage your created quizzes
           </p>
         </div>
-        <Button onClick={() => (window.location.href = '/quiz-creator')}>
+        <Button
+          onClick={() => (window.location.href = '/teacher/quizzes/create')}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create New Quiz
         </Button>

@@ -1,15 +1,15 @@
 import SectionDetails from './section-details';
 
-interface SectionPageProps {
-  params: {
-    sectionId: string;
-  };
-}
+const SectionPage = async ({
+  params,
+}: {
+  params: Promise<{ sectionId: string[] }>;
+}) => {
+  const { sectionId } = await params;
 
-const SectionPage = ({ params }: SectionPageProps) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <SectionDetails sectionId={params.sectionId} />
+      <SectionDetails sectionId={sectionId} />
     </div>
   );
 };

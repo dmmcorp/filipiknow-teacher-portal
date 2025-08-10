@@ -46,7 +46,7 @@ interface Student {
   };
 }
 
-export default function SectionDetails({ sectionId }: { sectionId: string }) {
+export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
   const section = useQuery(api.sections.getSectionByIdWithStudents, {
     sectionId: sectionId[0] as Id<'sections'>,
   });
