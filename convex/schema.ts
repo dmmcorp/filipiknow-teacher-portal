@@ -24,8 +24,8 @@ const schema = defineSchema({
 
   students: defineTable({
     userId: v.id('users'),
-    section: v.string(),
-    // section: v.id('sections'), // PANSAMANTALA NA ICOMMENT OUT MUNA NEED MA UPDATE YUNG REGISTRATION PART SA GODOT PERO MUKHANG DI NA AABOT FOR NOW COMMENT OUT MUNA PARA SA PRESENTATION NILA SA MONDAY.
+    // section: v.(),
+    section: v.id('sections'), // PANSAMANTALA NA ICOMMENT OUT MUNA NEED MA UPDATE YUNG REGISTRATION PART SA GODOT PERO MUKHANG DI NA AABOT FOR NOW COMMENT OUT MUNA PARA SA PRESENTATION NILA SA MONDAY.
     gradeLevel: v.string(),
   }).index('by_userId', ['userId']),
 
