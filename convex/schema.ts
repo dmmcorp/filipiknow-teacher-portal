@@ -181,6 +181,7 @@ const schema = defineSchema({
     }),
     time_limit: v.number(),
     instruction: v.string(),
+    points: v.string(),
   }).index('by_section_kabanata_level', ['section', 'kabanata', 'level']),
 
   sections: defineTable({
