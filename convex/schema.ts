@@ -123,7 +123,8 @@ const schema = defineSchema({
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
       v.literal('jigsawPuzzle'),
-      v.literal('whoSaidIt')
+      v.literal('whoSaidIt'),
+      v.literal('identification')
     ),
 
     // Content for 4pics1word
@@ -150,6 +151,13 @@ const schema = defineSchema({
       })
     ),
 
+    identification: v.optional(
+      v.object({
+        question: v.string(), // e.g. "Sinong tauhan sa kwento ang nagalit sa ‘Tinola’?"
+        answer: v.string(),
+      })
+    ),
+
     // Content for jigsaw puzzle
     jigsawPuzzle: v.optional(
       v.object({
@@ -171,6 +179,8 @@ const schema = defineSchema({
         })
       ),
     }),
+    time_limit: v.number(),
+    instruction: v.string(),
   }).index('by_section_kabanata_level', ['section', 'kabanata', 'level']),
 
   sections: defineTable({
