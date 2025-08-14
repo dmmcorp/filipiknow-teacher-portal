@@ -113,7 +113,7 @@ export const createQuiz = mutation({
             novel: args.novel,
             chapterId: args.chapterId,
             levelId: args.levelId,
-            gameType: "4pics1word",
+            gameType: args.gameType,
             fourPicsOneWord: args.fourPicsOneWord,
             multipleChoice: args.multipleChoice,
             jigsawPuzzle: args.jigsawPuzzle,
@@ -126,3 +126,41 @@ export const createQuiz = mutation({
         return quizId;
     }
 })
+
+export const getQuizzes = query({
+    args: {
+        teacherId: v.id("users"),
+    },
+    handler: async (ctx, args) => {
+        const quizzes = await ctx.db
+            .query("games")
+            .filter((q) => q.eq(q.field("teacherId"), args.teacherId))
+            .order("desc")
+            .collect();
+
+        const quizzesWithDetails = await Promise.all(
+            quizzes.map(async (quiz) => {
+                const chapter = await ctx.db.get(quiz.chapterId)
+                const level = await ctx.db.get(quiz.levelId)
+                const section = await ctx.db.get(quiz.section)
+
+                return {
+                    ...quiz,
+                    kabanata: chapter?.chapter || 0,
+                    level: level?.levelNo || 0,
+                    section: section?.name || "",
+                    createdAt: quiz._creationTime,
+                }
+            })
+        )
+
+        return quizzesWithDetails;
+    }
+})
+
+export const deleteQuiz = mutation({
+    args: { id: v.id("games") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.id);
+    },
+});
