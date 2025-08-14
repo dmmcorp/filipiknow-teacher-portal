@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 export const getChaptersByNovel = query({
@@ -144,12 +145,68 @@ export const getQuizzes = query({
                 const level = await ctx.db.get(quiz.levelId)
                 const section = await ctx.db.get(quiz.section)
 
+                let fourPicsOneWordWithUrls;
+                if (quiz.fourPicsOneWord?.images) {
+                    const imageUrls = await Promise.all(
+                        quiz.fourPicsOneWord.images.map(async (imageId) => ctx.storage.getUrl(imageId as Id<"_storage">))
+                    )
+
+                    fourPicsOneWordWithUrls = {
+                        ...quiz.fourPicsOneWord,
+                        imageUrls,
+                    }
+                }
+
+                let multipleChoiceWithUrl;
+                if (quiz.multipleChoice) {
+                    const imageUrl = quiz.multipleChoice.image
+                        ? await ctx.storage.getUrl(quiz.multipleChoice.image as Id<'_storage'>)
+                        : undefined;
+                    multipleChoiceWithUrl = {
+                        ...quiz.multipleChoice,
+                        imageUrl,
+                    };
+                }
+
+                let jigsawPuzzleWithUrl;
+                if (quiz.jigsawPuzzle?.image) {
+                    const imageUrl = await ctx.storage.getUrl(quiz.jigsawPuzzle.image as Id<'_storage'>);
+                    jigsawPuzzleWithUrl = {
+                        ...quiz.jigsawPuzzle,
+                        imageUrl,
+                    };
+                }
+
+                let whoSaidItWithUrls;
+                if (quiz.whoSaidIt?.options) {
+                    const optionsWithUrls = await Promise.all(
+                        quiz.whoSaidIt.options.map(async (option) => {
+                            const imageUrl = option.image
+                                ? await ctx.storage.getUrl(option.image as Id<'_storage'>)
+                                : undefined;
+                            return {
+                                ...option,
+                                imageUrl,
+                            };
+                        })
+                    );
+                    whoSaidItWithUrls = {
+                        ...quiz.whoSaidIt,
+                        options: optionsWithUrls,
+                    };
+                }
+
+
                 return {
                     ...quiz,
                     kabanata: chapter?.chapter || 0,
                     level: level?.levelNo || 0,
                     section: section?.name || "",
                     createdAt: quiz._creationTime,
+                    fourPicsOneWord: fourPicsOneWordWithUrls,
+                    multipleChoice: multipleChoiceWithUrl,
+                    jigsawPuzzle: jigsawPuzzleWithUrl,
+                    whoSaidIt: whoSaidItWithUrls,
                 }
             })
         )

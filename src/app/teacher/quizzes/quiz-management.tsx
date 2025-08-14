@@ -75,6 +75,7 @@ interface Quiz {
   gameType: GameType;
   createdAt: string;
   fourPicsOneWord?: {
+    imageUrls: string[];
     images: string[];
     clue: string;
     answer: string;
@@ -89,6 +90,7 @@ interface Quiz {
     }>;
   };
   jigsawPuzzle?: {
+    imageUrl: string;
     image: string;
     rows: number;
     columns: number;
@@ -221,13 +223,14 @@ export default function QuizManagement() {
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
-              {previewQuiz.fourPicsOneWord?.images.map((image, index) => (
+              {previewQuiz.fourPicsOneWord?.imageUrls.map((image, index) => (
                 <Image
                   key={index}
                   src={image || '/placeholder.svg'}
                   alt={`Image ${index + 1}`}
                   className="w-full h-24 object-cover rounded border"
-                  fill
+                  width={150}
+                  height={150}
                 />
               ))}
             </div>
@@ -331,15 +334,6 @@ export default function QuizManagement() {
       case 'jigsawPuzzle':
         return (
           <div className="space-y-4">
-            <div>
-              <Label className="font-medium">Puzzle Image:</Label>
-              <Image
-                src={previewQuiz.jigsawPuzzle?.image || '/placeholder.svg'}
-                alt="Puzzle"
-                className="w-full max-w-xs h-48 object-cover rounded border mt-2"
-                fill
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="font-medium">Rows:</Label>
@@ -353,6 +347,16 @@ export default function QuizManagement() {
                   {previewQuiz.jigsawPuzzle?.columns}
                 </p>
               </div>
+            </div>
+            <div>
+              <Label className="font-medium">Puzzle Image:</Label>
+              <Image
+                src={previewQuiz.jigsawPuzzle?.imageUrl || '/placeholder.svg'}
+                alt="Puzzle"
+                className="w-full max-w-xs h-48 object-cover rounded border mt-2"
+                width={200}
+                height={200}
+              />
             </div>
           </div>
         );
@@ -558,7 +562,7 @@ export default function QuizManagement() {
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-2xl bg-white">
+        <DialogContent className="max-w-2xl bg-white md:h-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {previewQuiz && (
