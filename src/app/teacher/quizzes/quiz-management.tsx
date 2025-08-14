@@ -39,12 +39,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { useMutation, useQuery } from 'convex/react';
 import {
   Edit,
   Eye,
   Filter,
   Grid3X3,
   ImageIcon,
+  Loader2Icon,
   MessageSquare,
   MoreHorizontal,
   Plus,
@@ -55,12 +58,14 @@ import {
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 type GameType = '4pics1word' | 'multipleChoice' | 'jigsawPuzzle' | 'whoSaidIt';
 type Novel = 'Noli me tangere' | 'El Filibusterismo';
 
 interface Quiz {
-  _id: string;
+  _id: Id<'games'>;
   teacherId: string;
   section: string;
   gradeLevel: string;
@@ -70,6 +75,7 @@ interface Quiz {
   gameType: GameType;
   createdAt: string;
   fourPicsOneWord?: {
+    imageUrls: string[];
     images: string[];
     clue: string;
     answer: string;
@@ -84,6 +90,7 @@ interface Quiz {
     }>;
   };
   jigsawPuzzle?: {
+    imageUrl: string;
     image: string;
     rows: number;
     columns: number;
@@ -100,89 +107,6 @@ interface Quiz {
   };
 }
 
-// Mock data
-const mockQuizzes: Quiz[] = [
-  {
-    _id: 'q1',
-    teacherId: 't1',
-    section: 'Section A',
-    gradeLevel: 'Grade 9',
-    novel: 'Noli me tangere',
-    kabanata: 1,
-    level: 1,
-    gameType: '4pics1word',
-    createdAt: '2024-01-15',
-    fourPicsOneWord: {
-      images: [
-        '/placeholder.svg?height=100&width=100',
-        '/placeholder.svg?height=100&width=100',
-        '/placeholder.svg?height=100&width=100',
-        '/placeholder.svg?height=100&width=100',
-      ],
-      clue: "She's known for her devotion and faith in the novel",
-      answer: 'Maria Clara',
-    },
-  },
-  {
-    _id: 'q2',
-    teacherId: 't1',
-    section: 'Section A',
-    gradeLevel: 'Grade 9',
-    novel: 'Noli me tangere',
-    kabanata: 1,
-    level: 2,
-    gameType: 'multipleChoice',
-    createdAt: '2024-01-16',
-    multipleChoice: {
-      question: "Sinong tauhan sa kwento ang nagalit sa 'Tinola'?",
-      options: [
-        { text: 'Crisostomo Ibarra', isCorrect: true },
-        { text: 'Padre Damaso', isCorrect: false },
-        { text: 'Maria Clara', isCorrect: false },
-        { text: 'Kapitan Tiago', isCorrect: false },
-      ],
-    },
-  },
-  {
-    _id: 'q3',
-    teacherId: 't1',
-    section: 'Section B',
-    gradeLevel: 'Grade 10',
-    novel: 'El Filibusterismo',
-    kabanata: 2,
-    level: 1,
-    gameType: 'whoSaidIt',
-    createdAt: '2024-01-17',
-    whoSaidIt: {
-      question: 'Sino ang nagsabi ng linyang ito:',
-      quote: "Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!",
-      hint: 'Isa siyang indiyo na naging padre',
-      options: [
-        { name: 'Padre Damaso', isCorrect: true },
-        { name: 'Crisostomo Ibarra', isCorrect: false },
-        { name: 'Elias', isCorrect: false },
-        { name: 'Kapitan Tiago', isCorrect: false },
-      ],
-    },
-  },
-  {
-    _id: 'q4',
-    teacherId: 't1',
-    section: 'Section A',
-    gradeLevel: 'Grade 9',
-    novel: 'Noli me tangere',
-    kabanata: 3,
-    level: 1,
-    gameType: 'jigsawPuzzle',
-    createdAt: '2024-01-18',
-    jigsawPuzzle: {
-      image: '/placeholder.svg?height=300&width=300',
-      rows: 3,
-      columns: 3,
-    },
-  },
-];
-
 const gameTypeIcons = {
   '4pics1word': ImageIcon,
   multipleChoice: Grid3X3,
@@ -198,8 +122,7 @@ const gameTypeLabels = {
 };
 
 export default function QuizManagement() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(mockQuizzes);
-  const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>(mockQuizzes);
+  const { user } = useCurrentUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGameType, setSelectedGameType] = useState<string>('all');
   const [selectedNovel, setSelectedNovel] = useState<string>('all');
@@ -207,8 +130,17 @@ export default function QuizManagement() {
   const [previewQuiz, setPreviewQuiz] = useState<Quiz | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Filter quizzes based on search and filters
-  const applyFilters = () => {
+  const quizzes = useQuery(api.quiz.getQuizzes, {
+    teacherId: user?._id as Id<'users'>,
+  }) as Quiz[] | undefined;
+
+  const deleteQuizMutation = useMutation(api.quiz.deleteQuiz);
+
+  const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
+
+  useEffect(() => {
+    if (!quizzes) return;
+
     let filtered = quizzes;
 
     if (searchTerm) {
@@ -235,19 +167,12 @@ export default function QuizManagement() {
     }
 
     setFilteredQuizzes(filtered);
-  };
-
-  // Apply filters whenever search term or filters change
-  useEffect(() => {
-    applyFilters();
   }, [searchTerm, selectedGameType, selectedNovel, selectedSection, quizzes]);
 
   const handleEdit = (quiz: Quiz) => {
     // Navigate to edit page or open edit modal
     // For now, just show a toast
-    toast.success(
-      `Editing ${gameTypeLabels[quiz.gameType]} quiz for ${quiz.novel} - Kabanata ${quiz.kabanata}`
-    );
+    toast.success(`Editing quiz for ${quiz.novel} - Kabanata ${quiz.kabanata}`);
   };
 
   const handleDelete = async (quiz: Quiz) => {
@@ -257,11 +182,7 @@ export default function QuizManagement() {
       )
     ) {
       try {
-        // await ctx.runMutation(api.games.delete, { id: quiz._id })
-
-        // Mock implementation
-        setQuizzes((prev) => prev.filter((q) => q._id !== quiz._id));
-
+        await deleteQuizMutation({ id: quiz._id });
         toast.success('Quiz has been deleted successfully');
       } catch (error) {
         toast.error('Failed to delete quiz. Please try again.');
@@ -269,12 +190,28 @@ export default function QuizManagement() {
     }
   };
 
+  if (!quizzes) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2">
+          <div className="animate-spin">
+            <Loader2Icon className="h-6 w-6" />
+          </div>
+          <span>Loading quizzes...</span>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('quizzes:', quizzes);
+
   const handlePreview = (quiz: Quiz) => {
     setPreviewQuiz(quiz);
     setIsPreviewOpen(true);
   };
 
   const getUniqueValues = (key: keyof Quiz) => {
+    if (!quizzes) return [];
     return Array.from(new Set(quizzes.map((quiz) => quiz[key] as string)));
   };
 
@@ -286,13 +223,14 @@ export default function QuizManagement() {
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
-              {previewQuiz.fourPicsOneWord?.images.map((image, index) => (
+              {previewQuiz.fourPicsOneWord?.imageUrls.map((image, index) => (
                 <Image
                   key={index}
                   src={image || '/placeholder.svg'}
                   alt={`Image ${index + 1}`}
                   className="w-full h-24 object-cover rounded border"
-                  fill
+                  width={150}
+                  height={150}
                 />
               ))}
             </div>
@@ -396,15 +334,6 @@ export default function QuizManagement() {
       case 'jigsawPuzzle':
         return (
           <div className="space-y-4">
-            <div>
-              <Label className="font-medium">Puzzle Image:</Label>
-              <Image
-                src={previewQuiz.jigsawPuzzle?.image || '/placeholder.svg'}
-                alt="Puzzle"
-                className="w-full max-w-xs h-48 object-cover rounded border mt-2"
-                fill
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="font-medium">Rows:</Label>
@@ -418,6 +347,16 @@ export default function QuizManagement() {
                   {previewQuiz.jigsawPuzzle?.columns}
                 </p>
               </div>
+            </div>
+            <div>
+              <Label className="font-medium">Puzzle Image:</Label>
+              <Image
+                src={previewQuiz.jigsawPuzzle?.imageUrl || '/placeholder.svg'}
+                alt="Puzzle"
+                className="w-full max-w-xs h-48 object-cover rounded border mt-2"
+                width={200}
+                height={200}
+              />
             </div>
           </div>
         );
@@ -544,7 +483,7 @@ export default function QuizManagement() {
         <CardHeader>
           <CardTitle>Your Quizzes</CardTitle>
           <CardDescription>
-            Showing {filteredQuizzes.length} of {quizzes.length} quizzes
+            Showing {filteredQuizzes.length} of {quizzes?.length || 0} quizzes
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -623,7 +562,7 @@ export default function QuizManagement() {
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-2xl bg-white">
+        <DialogContent className="max-w-2xl bg-white md:h-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {previewQuiz && (

@@ -21,10 +21,11 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import {
   Grid3X3,
   ImageIcon,
+  Loader2Icon,
   MessageSquare,
   Plus,
   Puzzle,
@@ -32,7 +33,8 @@ import {
   X,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { api } from '../../../../../convex/_generated/api';
 import { Id } from '../../../../../convex/_generated/dataModel';
 
@@ -42,9 +44,14 @@ type Novel = 'Noli me tangere' | 'El Filibusterismo';
 interface QuizData {
   section: Id<'sections'> | undefined;
   novel: Novel;
-  kabanata: number;
-  level: number;
+  levelId: Id<'levels'> | undefined;
+  chapterId: Id<'chapters'> | undefined;
+  // kabanata: number;
+  // level: number;
   gameType: GameType;
+  instruction: string;
+  time_limit: number;
+  points: number;
   fourPicsOneWord?: {
     images: string[];
     clue: string;
@@ -55,8 +62,8 @@ interface QuizData {
     image?: string;
     options: Array<{
       text: string;
-      image?: string;
-      isCorrect?: boolean;
+      // image?: string;
+      isCorrect: boolean;
     }>;
   };
   jigsawPuzzle?: {
@@ -85,20 +92,47 @@ interface Section {
 
 export default function QuizCreator() {
   const { user, isLoading } = useCurrentUser();
+  const [selectedNovel, setSelectedNovel] = useState<Novel>('Noli me tangere');
+  const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(
+    null
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const sections = useQuery(api.sections.getSectionsByUserId, {
     userId: user?._id as Id<'users'>,
   }) as Section[] | undefined;
+  const chapters = useQuery(api.quiz.getChaptersByNovel, {
+    novel: selectedNovel,
+  });
+  const createQuiz = useMutation(api.quiz.createQuiz);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [chapterInfo, setChapterInfo] = useState<{
+    chapter: number;
+    title: string;
+  } | null>(null);
+  const [levelInfo, setLevelInfo] = useState<{ levelNo: number } | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<{ [key: number]: string }>(
+    {}
+  );
 
   // note this is just the initial value....
   const [quizData, setQuizData] = useState<QuizData>({
     section: undefined,
     novel: 'Noli me tangere',
-    kabanata: 1,
-    level: 1,
+    chapterId: undefined,
+    levelId: undefined,
     gameType: '4pics1word',
+    instruction: '',
+    time_limit: 60,
+    points: 10,
   });
+
+  const levels = useQuery(
+    api.quiz.getLevelsByChapter,
+    quizData.chapterId ? { chapterId: quizData.chapterId } : 'skip'
+  );
 
   const gameTypeIcons = {
     '4pics1word': ImageIcon,
@@ -181,6 +215,29 @@ export default function QuizCreator() {
     }
   };
 
+  const handleChapterSelect = (chapterId: string) => {
+    updateQuizData('chapterId', chapterId);
+
+    const selectedChapter = chapters?.find((c) => c.id === chapterId);
+    if (selectedChapter) {
+      setChapterInfo({
+        chapter: selectedChapter.chapter,
+        title: selectedChapter.title,
+      });
+      setLevelInfo(null);
+    }
+  };
+
+  const handleLevelSelect = (levelId: string) => {
+    updateQuizData('levelId', levelId);
+    const selectedLevel = levels?.find((l) => l.id === levelId);
+    if (selectedLevel) {
+      setLevelInfo({
+        levelNo: selectedLevel.levelNo,
+      });
+    }
+  };
+
   const updateOption = (
     gameType: 'multipleChoice' | 'whoSaidIt',
     index: number,
@@ -207,6 +264,171 @@ export default function QuizCreator() {
         ...quizData.whoSaidIt,
         options: updated,
       });
+    }
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImageIndex(-1);
+
+    // Create preview URL immediately
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews((prev) => ({ ...prev, [-1]: previewUrl }));
+
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!result.ok) throw new Error('Failed to upload image');
+
+      const { storageId } = await result.json();
+      updateQuizData('multipleChoice', {
+        ...quizData.multipleChoice,
+        image: storageId,
+      });
+
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      toast.error('Failed to upload image');
+      // Clean up preview on error
+      URL.revokeObjectURL(previewUrl);
+      setImagePreviews((prev) => {
+        const next = { ...prev };
+        delete next[-1];
+        return next;
+      });
+    } finally {
+      setUploadingImageIndex(null);
+    }
+  };
+
+  const handleQuizSubmit = async () => {
+    if (
+      !user?._id ||
+      !quizData.section ||
+      !quizData.chapterId ||
+      !quizData.levelId
+    ) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const quizPayload = {
+        teacherId: user._id,
+        section: quizData.section,
+        novel: quizData.novel,
+        chapterId: quizData.chapterId,
+        levelId: quizData.levelId,
+        gameType: quizData.gameType,
+        instruction: quizData.instruction,
+        timeLimit: quizData.time_limit,
+        points: quizData.points,
+      };
+
+      if (quizData.gameType === '4pics1word' && quizData.fourPicsOneWord) {
+        await createQuiz({
+          ...quizPayload,
+          gameType: '4pics1word',
+          fourPicsOneWord: {
+            images: quizData.fourPicsOneWord.images || [],
+            clue: quizData.fourPicsOneWord.clue || '',
+            answer: quizData.fourPicsOneWord.answer || '',
+          },
+        });
+      } else if (
+        quizData.gameType === 'multipleChoice' &&
+        quizData.multipleChoice
+      ) {
+        // Validate multiple choice data
+        if (!quizData.multipleChoice.question) {
+          throw new Error('Question is required');
+        }
+        if (
+          !quizData.multipleChoice.options ||
+          quizData.multipleChoice.options.length === 0
+        ) {
+          throw new Error('At least one option is required');
+        }
+        if (!quizData.multipleChoice.options.some((opt) => opt.isCorrect)) {
+          throw new Error('At least one correct answer must be selected');
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'multipleChoice',
+          multipleChoice: {
+            question: quizData.multipleChoice.question,
+            image: quizData.multipleChoice.image,
+            options: quizData.multipleChoice.options,
+          },
+        });
+      } else if (
+        quizData.gameType === 'jigsawPuzzle' &&
+        quizData.jigsawPuzzle
+      ) {
+        if (!quizData.jigsawPuzzle.image) {
+          throw new Error('Puzzle image is required');
+        }
+        if (!quizData.jigsawPuzzle.rows || !quizData.jigsawPuzzle.columns) {
+          throw new Error('Rows and columns are required');
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'jigsawPuzzle',
+          jigsawPuzzle: {
+            image: quizData.jigsawPuzzle.image,
+            rows: quizData.jigsawPuzzle.rows,
+            columns: quizData.jigsawPuzzle.columns,
+          },
+        });
+      } else if (quizData.gameType === 'whoSaidIt' && quizData.whoSaidIt) {
+        if (!quizData.whoSaidIt.question) {
+          throw new Error('Question is required');
+        }
+        if (!quizData.whoSaidIt.quote) {
+          throw new Error('Quote is required');
+        }
+        if (
+          !quizData.whoSaidIt.options ||
+          quizData.whoSaidIt.options.length === 0
+        ) {
+          throw new Error('At least one character option is required');
+        }
+        if (!quizData.whoSaidIt.options.some((opt) => opt.isCorrect)) {
+          throw new Error('At least one correct answer must be selected');
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'whoSaidIt',
+          whoSaidIt: {
+            question: quizData.whoSaidIt.question,
+            quote: quizData.whoSaidIt.quote,
+            hint: quizData.whoSaidIt.hint,
+            options: quizData.whoSaidIt.options.map((opt) => ({
+              name: opt.name,
+              image: opt.image,
+              isCorrect: opt.isCorrect,
+            })),
+          },
+        });
+      }
+      toast.success('Quiz created successfully!');
+    } catch (error) {
+      toast.error('Failed to create quiz');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -271,7 +493,19 @@ export default function QuizCreator() {
           <Label>Novel</Label>
           <Select
             value={quizData.novel}
-            onValueChange={(value: Novel) => updateQuizData('novel', value)}
+            onValueChange={(value: Novel) => {
+              // Reset chapter and level when novel changes
+              setQuizData((prev) => ({
+                ...prev,
+                novel: value,
+                chapterId: undefined,
+                levelId: undefined,
+                fourPicsOneWord: prev.fourPicsOneWord,
+              }));
+              setChapterInfo(null);
+              setLevelInfo(null);
+              setSelectedNovel(value);
+            }}
           >
             <SelectTrigger>
               <SelectValue />
@@ -287,20 +521,18 @@ export default function QuizCreator() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="kabanata">Kabanata</Label>
+            <Label htmlFor="chapter">Chapter</Label>
             <Select
-              value={quizData.kabanata.toString()}
-              onValueChange={(value) =>
-                updateQuizData('kabanata', parseInt(value))
-              }
+              value={quizData.chapterId || ''}
+              onValueChange={handleChapterSelect}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select chapter" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: maxKabanata[quizData.novel] }, (_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    Kabanata {i + 1}
+                {chapters?.map((chapter) => (
+                  <SelectItem key={chapter.id} value={chapter.id}>
+                    {chapter.displayName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -309,22 +541,77 @@ export default function QuizCreator() {
           <div className="space-y-2">
             <Label htmlFor="level">Level</Label>
             <Select
-              value={quizData.level.toString()}
-              onValueChange={(value) =>
-                updateQuizData('level', parseInt(value))
-              }
+              value={quizData.levelId}
+              onValueChange={handleLevelSelect}
+              disabled={!quizData.chapterId}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue
+                  placeholder={
+                    !quizData.chapterId
+                      ? 'Select a chapter first'
+                      : levels === undefined
+                        ? 'Loading levels...'
+                        : 'Select level'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 8 }, (_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    Level {i + 1}
+                {levels?.map((level) => (
+                  <SelectItem key={level.id} value={level.id}>
+                    Level {level.levelNo}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {!quizData.chapterId ? (
+              <p className="text-sm text-muted-foreground">
+                Select a chapter first to view available levels
+              </p>
+            ) : levels?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No levels available for this chapter
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="instruction">Quiz Instructions</Label>
+          <Textarea
+            id="instruction"
+            placeholder="e.g., Read each question carefully and select the best answer..."
+            value={quizData.instruction || ''}
+            onChange={(e) => updateQuizData('instruction', e.target.value)}
+            rows={3}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="time_limit">Time Limit (seconds)</Label>
+            <Input
+              id="time_limit"
+              type="number"
+              placeholder="60"
+              min="30"
+              max="600"
+              value={quizData.time_limit || 60}
+              onChange={(e) =>
+                updateQuizData('time_limit', Number(e.target.value))
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="points">Points</Label>
+            <Input
+              id="points"
+              type="number"
+              placeholder="10"
+              min="1"
+              max="100"
+              value={quizData.points || 10}
+              onChange={(e) => updateQuizData('points', Number(e.target.value))}
+            />
           </div>
         </div>
       </CardContent>
@@ -365,304 +652,663 @@ export default function QuizCreator() {
     </Card>
   );
 
-  const render4PicsOneWordForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Images (4 required)</Label>
-        <div className="grid grid-cols-2 gap-4">
-          {(quizData.fourPicsOneWord?.images || []).map((image, index) => (
-            <div key={index} className="relative">
-              <Image
-                src={image || '/placeholder.svg'}
-                alt={`Image ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg border"
-                fill
-              />
+  const render4PicsOneWordForm = () => {
+    const handleImageUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>,
+      index: number
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingImageIndex(index);
+
+      // Create preview URL immediately
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews((prev) => ({ ...prev, [index]: previewUrl }));
+
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error('Failed to upload image');
+
+        const { storageId } = await result.json();
+        const current = quizData.fourPicsOneWord?.images || [];
+        const newImages = [...current];
+        newImages[index] = storageId;
+
+        updateQuizData('fourPicsOneWord', {
+          ...quizData.fourPicsOneWord,
+          images: newImages,
+        });
+
+        toast.success('Image uploaded successfully!');
+      } catch (error) {
+        toast.error('Failed to upload image');
+        // Clean up preview on error
+        URL.revokeObjectURL(previewUrl);
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      } finally {
+        setUploadingImageIndex(null);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label>Images (4 required)</Label>
+          <div className="grid grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="relative">
+                {quizData.fourPicsOneWord?.images?.[index] ? (
+                  <>
+                    <Image
+                      src={imagePreviews[index] || '/placeholder.svg'}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-60 object-cover rounded-lg border bg-gray-50"
+                      width={300}
+                      height={300}
+                    />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2 w-6 h-6 p-0"
+                      onClick={() => {
+                        removeImage('4pics1word', index);
+                        // Clean up preview URL
+                        if (imagePreviews[index]) {
+                          URL.revokeObjectURL(imagePreviews[index]);
+                          setImagePreviews((prev) => {
+                            const next = { ...prev };
+                            delete next[index];
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="h-32 w-full border-dashed bg-transparent relative"
+                    disabled={uploadingImageIndex !== null}
+                  >
+                    {uploadingImageIndex === index ? (
+                      <Loader2Icon className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 mr-2" />
+                        Upload Image {index + 1}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => handleImageUpload(e, index)}
+                          disabled={uploadingImageIndex !== null}
+                        />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Rest of the form (clue and answer fields) remains the same */}
+        <div className="space-y-2">
+          <Label htmlFor="clue">Clue</Label>
+          <Textarea
+            id="clue"
+            placeholder="e.g., She's known for her devotion and faith in the novel"
+            value={quizData.fourPicsOneWord?.clue || ''}
+            onChange={(e) =>
+              updateQuizData('fourPicsOneWord', {
+                ...quizData.fourPicsOneWord,
+                clue: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="answer">Answer</Label>
+          <Input
+            id="answer"
+            placeholder="e.g., Maria Clara"
+            value={quizData.fourPicsOneWord?.answer || ''}
+            onChange={(e) =>
+              updateQuizData('fourPicsOneWord', {
+                ...quizData.fourPicsOneWord,
+                answer: e.target.value,
+              })
+            }
+          />
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      // Clean up all preview URLs on unmount
+      Object.values(imagePreviews).forEach(URL.revokeObjectURL);
+    };
+  }, [imagePreviews]);
+
+  const renderMultipleChoiceForm = () => {
+    const hasCorrectAnswer = quizData.multipleChoice?.options?.some(
+      (opt) => opt.isCorrect
+    );
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="question">Question</Label>
+          <Textarea
+            id="question"
+            placeholder="e.g., Sinong tauhan sa kwento ang nagalit sa 'Tinola'?"
+            value={quizData.multipleChoice?.question || ''}
+            onChange={(e) =>
+              updateQuizData('multipleChoice', {
+                ...quizData.multipleChoice,
+                question: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Question Image (Optional)</Label>
+          <div className="relative">
+            {quizData.multipleChoice?.image ? (
+              <div className="relative">
+                <Image
+                  src={imagePreviews[-1] || '/placeholder.svg'}
+                  alt="Question Image"
+                  className="w-[300px] h-[300px] object-cover rounded-lg border"
+                  width={200}
+                  height={200}
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 w-6 h-6 p-0"
+                  onClick={() => {
+                    updateQuizData('multipleChoice', {
+                      ...quizData.multipleChoice,
+                      image: undefined,
+                    });
+                    // Clean up preview URL
+                    if (imagePreviews[-1]) {
+                      URL.revokeObjectURL(imagePreviews[-1]);
+                      setImagePreviews((prev) => {
+                        const next = { ...prev };
+                        delete next[-1];
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
               <Button
-                size="sm"
-                variant="destructive"
-                className="absolute top-2 right-2 w-6 h-6 p-0"
-                onClick={() => removeImage('4pics1word', index)}
+                variant="outline"
+                className="w-full h-32 border-dashed bg-transparent relative"
+                disabled={uploadingImageIndex !== null}
               >
-                <X className="w-4 h-4" />
+                {uploadingImageIndex === -1 ? (
+                  <Loader2Icon className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 mr-2" />
+                    Upload Question Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImageIndex !== null}
+                    />
+                  </>
+                )}
               </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Answer Options</Label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => addOption('multipleChoice')}
+              disabled={(quizData.multipleChoice?.options?.length || 0) >= 4}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Option
+            </Button>
+          </div>
+
+          {!hasCorrectAnswer &&
+            (quizData.multipleChoice?.options?.length || 0) > 0 && (
+              <p className="text-yellow-600 text-sm">
+                Please select at least one correct answer
+              </p>
+            )}
+
+          {(quizData.multipleChoice?.options || []).map((option, index) => (
+            <div key={index} className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Option {index + 1}</Label>
+                <Checkbox
+                  checked={option.isCorrect || false}
+                  onCheckedChange={(checked) =>
+                    updateOption('multipleChoice', index, 'isCorrect', checked)
+                  }
+                />
+              </div>
+              <Input
+                placeholder="Enter option text"
+                value={option.text}
+                onChange={(e) =>
+                  updateOption('multipleChoice', index, 'text', e.target.value)
+                }
+              />
             </div>
           ))}
-          {(quizData.fourPicsOneWord?.images?.length || 0) < 4 && (
-            <Button
-              variant="outline"
-              className="h-32 border-dashed bg-transparent"
-              onClick={() => addImagePlaceholder('4pics1word')}
-            >
-              <Upload className="w-6 h-6 mr-2" />
-              Upload Image
-            </Button>
-          )}
         </div>
       </div>
+    );
+  };
 
-      <div className="space-y-2">
-        <Label htmlFor="clue">Clue</Label>
-        <Textarea
-          id="clue"
-          placeholder="e.g., She's known for her devotion and faith in the novel"
-          value={quizData.fourPicsOneWord?.clue || ''}
-          onChange={(e) =>
-            updateQuizData('fourPicsOneWord', {
-              ...quizData.fourPicsOneWord,
-              clue: e.target.value,
-            })
-          }
-        />
-      </div>
+  const renderJigsawPuzzleForm = () => {
+    const handleJigsawImageUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      <div className="space-y-2">
-        <Label htmlFor="answer">Answer</Label>
-        <Input
-          id="answer"
-          placeholder="e.g., Maria Clara"
-          value={quizData.fourPicsOneWord?.answer || ''}
-          onChange={(e) =>
-            updateQuizData('fourPicsOneWord', {
-              ...quizData.fourPicsOneWord,
-              answer: e.target.value,
-            })
-          }
-        />
-      </div>
-    </div>
-  );
+      setUploadingImageIndex(-1);
 
-  const renderMultipleChoiceForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="question">Question</Label>
-        <Textarea
-          id="question"
-          placeholder="e.g., Sinong tauhan sa kwento ang nagalit sa 'Tinola'?"
-          value={quizData.multipleChoice?.question || ''}
-          onChange={(e) =>
-            updateQuizData('multipleChoice', {
-              ...quizData.multipleChoice,
-              question: e.target.value,
-            })
-          }
-        />
-      </div>
+      // Create preview URL immediately
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews((prev) => ({ ...prev, [-1]: previewUrl }));
 
-      <div className="space-y-2">
-        <Label>Question Image (Optional)</Label>
-        <Button
-          variant="outline"
-          className="w-full h-32 border-dashed bg-transparent"
-        >
-          <Upload className="w-6 h-6 mr-2" />
-          Upload Question Image
-        </Button>
-      </div>
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Answer Options</Label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => addOption('multipleChoice')}
-            disabled={(quizData.multipleChoice?.options?.length || 0) >= 4}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Option
-          </Button>
-        </div>
+        if (!result.ok) throw new Error('Failed to upload image');
 
-        {(quizData.multipleChoice?.options || []).map((option, index) => (
-          <div key={index} className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Option {index + 1}</Label>
-              <Checkbox
-                checked={option.isCorrect || false}
-                onCheckedChange={(checked) =>
-                  updateOption('multipleChoice', index, 'isCorrect', checked)
-                }
-              />
-            </div>
-            <Input
-              placeholder="Enter option text"
-              value={option.text}
-              onChange={(e) =>
-                updateOption('multipleChoice', index, 'text', e.target.value)
-              }
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-transparent"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Option Image (Optional)
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+        const { storageId } = await result.json();
+        updateQuizData('jigsawPuzzle', {
+          ...quizData.jigsawPuzzle,
+          image: storageId,
+        });
 
-  const renderJigsawPuzzleForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Puzzle Image</Label>
-        <Button
-          variant="outline"
-          className="w-full h-48 border-dashed bg-transparent"
-        >
-          <Upload className="w-6 h-6 mr-2" />
-          Upload Puzzle Image
-        </Button>
-      </div>
+        toast.success('Image uploaded successfully!');
+      } catch (error) {
+        toast.error('Failed to upload image');
+        // Clean up preview URL on error
+        URL.revokeObjectURL(previewUrl);
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[-1];
+          return next;
+        });
+      } finally {
+        setUploadingImageIndex(null);
+      }
+    };
 
-      <div className="grid grid-cols-2 gap-4">
+    return (
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="rows">Rows</Label>
-          <Select
-            value={quizData.jigsawPuzzle?.rows?.toString() || '3'}
-            onValueChange={(value) =>
-              updateQuizData('jigsawPuzzle', {
-                ...quizData.jigsawPuzzle,
-                rows: Number.parseInt(value),
+          <Label>Puzzle Image</Label>
+          <div className="relative">
+            {quizData.jigsawPuzzle?.image ? (
+              <div className="relative">
+                <Image
+                  src={imagePreviews[-1] || '/placeholder.svg'}
+                  alt="Puzzle Image"
+                  className="w-full h-[400px] object-cover rounded-lg border"
+                  width={300}
+                  height={300}
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 w-6 h-6 p-0"
+                  onClick={() => {
+                    updateQuizData('jigsawPuzzle', {
+                      ...quizData.jigsawPuzzle,
+                      image: undefined,
+                    });
+                    // Clean up preview URL
+                    if (imagePreviews[-1]) {
+                      URL.revokeObjectURL(imagePreviews[-1]);
+                      setImagePreviews((prev) => {
+                        const next = { ...prev };
+                        delete next[-1];
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full h-48 border-dashed bg-transparent relative"
+                disabled={uploadingImageIndex !== null}
+              >
+                {uploadingImageIndex === -1 ? (
+                  <Loader2Icon className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 mr-2" />
+                    Upload Puzzle Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleJigsawImageUpload}
+                      disabled={uploadingImageIndex !== null}
+                    />
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Upload a clear image that will be split into puzzle pieces
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="rows">Rows</Label>
+            <Select
+              value={quizData.jigsawPuzzle?.rows?.toString() || '3'}
+              onValueChange={(value) =>
+                updateQuizData('jigsawPuzzle', {
+                  ...quizData.jigsawPuzzle,
+                  rows: Number(value),
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2, 3, 4, 5, 6].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} rows
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="columns">Columns</Label>
+            <Select
+              value={quizData.jigsawPuzzle?.columns?.toString() || '3'}
+              onValueChange={(value) =>
+                updateQuizData('jigsawPuzzle', {
+                  ...quizData.jigsawPuzzle,
+                  columns: Number(value),
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2, 3, 4, 5, 6].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} columns
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {quizData.jigsawPuzzle?.image && (
+          <div className="mt-4 p-4 bg-muted rounded-lg">
+            <p className="text-sm font-medium">Preview Settings:</p>
+            <p className="text-sm text-muted-foreground">
+              This image will be split into{' '}
+              {(quizData.jigsawPuzzle?.rows || 3) *
+                (quizData.jigsawPuzzle?.columns || 3)}{' '}
+              pieces ({quizData.jigsawPuzzle?.rows || 3} rows ×{' '}
+              {quizData.jigsawPuzzle?.columns || 3} columns)
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderWhoSaidItForm = () => {
+    const handleCharacterImageUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>,
+      index: number
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingImageIndex(index);
+
+      // Create preview URL immediately
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews((prev) => ({ ...prev, [index]: previewUrl }));
+
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error('Failed to upload image');
+
+        const { storageId } = await result.json();
+        const current = quizData.whoSaidIt?.options || [];
+        const updatedOptions = [...current];
+        updatedOptions[index] = {
+          ...updatedOptions[index],
+          image: storageId,
+        };
+
+        updateQuizData('whoSaidIt', {
+          ...quizData.whoSaidIt,
+          options: updatedOptions,
+        });
+
+        toast.success('Character image uploaded successfully!');
+      } catch (error) {
+        toast.error('Failed to upload image');
+        // Clean up preview on error
+        URL.revokeObjectURL(previewUrl);
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      } finally {
+        setUploadingImageIndex(null);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="question">Question</Label>
+          <Input
+            id="question"
+            placeholder="e.g., Who said this quote from Chapter 1?"
+            value={quizData.whoSaidIt?.question || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                question: e.target.value,
               })
             }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2, 3, 4, 5, 6].map((num) => (
-                <SelectItem key={num} value={num.toString()}>
-                  {num} rows
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="columns">Columns</Label>
-          <Select
-            value={quizData.jigsawPuzzle?.columns?.toString() || '3'}
-            onValueChange={(value) =>
-              updateQuizData('jigsawPuzzle', {
-                ...quizData.jigsawPuzzle,
-                columns: Number.parseInt(value),
+          <Label htmlFor="quote">Quote</Label>
+          <Textarea
+            id="quote"
+            placeholder="Enter the quote here..."
+            value={quizData.whoSaidIt?.quote || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                quote: e.target.value,
               })
             }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2, 3, 4, 5, 6].map((num) => (
-                <SelectItem key={num} value={num.toString()}>
-                  {num} columns
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderWhoSaidItForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="question">Question</Label>
-        <Input
-          id="question"
-          placeholder="e.g., Sino sa mga nasa litrato ang nagsabi sa linyang ito:"
-          value={quizData.whoSaidIt?.question || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              question: e.target.value,
-            })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="quote">Quote</Label>
-        <Textarea
-          id="quote"
-          placeholder="e.g., Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!"
-          value={quizData.whoSaidIt?.quote || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              quote: e.target.value,
-            })
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="hint">Hint (Optional)</Label>
-        <Input
-          id="hint"
-          placeholder="e.g., Isa siyang indiyo na naging padre"
-          value={quizData.whoSaidIt?.hint || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              hint: e.target.value,
-            })
-          }
-        />
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Character Options</Label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => addOption('whoSaidIt')}
-            disabled={(quizData.whoSaidIt?.options?.length || 0) >= 4}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Character
-          </Button>
+          />
         </div>
 
-        {(quizData.whoSaidIt?.options || []).map((option, index) => (
-          <div key={index} className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Character {index + 1}</Label>
-              <Checkbox
-                checked={option.isCorrect || false}
-                onCheckedChange={(checked) =>
-                  updateOption('whoSaidIt', index, 'isCorrect', checked)
-                }
-              />
-            </div>
-            <Input
-              placeholder="Character name"
-              value={option.name}
-              onChange={(e) =>
-                updateOption('whoSaidIt', index, 'name', e.target.value)
-              }
-            />
+        <div className="space-y-2">
+          <Label htmlFor="hint">Hint (Optional)</Label>
+          <Input
+            id="hint"
+            placeholder="Add a hint to help students"
+            value={quizData.whoSaidIt?.hint || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                hint: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Character Options</Label>
             <Button
-              variant="outline"
               size="sm"
-              className="w-full bg-transparent"
+              variant="outline"
+              onClick={() => addOption('whoSaidIt')}
+              disabled={(quizData.whoSaidIt?.options?.length || 0) >= 4}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Character Image (Optional)
+              <Plus className="w-4 h-4 mr-1" />
+              Add Character
             </Button>
           </div>
-        ))}
+
+          {(quizData.whoSaidIt?.options || []).map((option, index) => (
+            <div key={index} className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between mb-4">
+                <Label>Character {index + 1}</Label>
+                <Checkbox
+                  checked={option.isCorrect || false}
+                  onCheckedChange={(checked) =>
+                    updateOption('whoSaidIt', index, 'isCorrect', checked)
+                  }
+                />
+              </div>
+
+              <Input
+                placeholder="Character name"
+                value={option.name}
+                onChange={(e) =>
+                  updateOption('whoSaidIt', index, 'name', e.target.value)
+                }
+              />
+
+              {/* <div className="mt-4">
+                {option.image ? (
+                  <div className="relative">
+                    <Image
+                      src={imagePreviews[index] || '/placeholder.svg'}
+                      alt={option.name || `Character ${index + 1}`}
+                      className="w-32 h-32 object-cover rounded-lg"
+                      width={128}
+                      height={128}
+                    />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2 w-6 h-6 p-0"
+                      onClick={() => {
+                        updateOption('whoSaidIt', index, 'image', undefined);
+                        // Clean up preview URL
+                        if (imagePreviews[index]) {
+                          URL.revokeObjectURL(imagePreviews[index]);
+                          setImagePreviews((prev) => {
+                            const next = { ...prev };
+                            delete next[index];
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full h-32 border-dashed bg-transparent relative"
+                    disabled={uploadingImageIndex !== null}
+                  >
+                    {uploadingImageIndex === index ? (
+                      <Loader2Icon className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 mr-2" />
+                        Upload Character Image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => handleCharacterImageUpload(e, index)}
+                          disabled={uploadingImageIndex !== null}
+                        />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div> */}
+            </div>
+          ))}
+        </div>
+
+        {quizData.whoSaidIt?.options?.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Add character options using the button above
+          </p>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep3 = () => (
     <Card>
@@ -682,6 +1328,8 @@ export default function QuizCreator() {
   );
 
   if (isLoading) return <div>Loading....</div>;
+
+  console.log('quiz data', quizData);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -715,8 +1363,26 @@ export default function QuizCreator() {
             <Button onClick={handleStepNext}>Next</Button>
           ) : (
             <div className="flex gap-2">
-              <Button variant="outline">Save as Draft</Button>
-              <Button>Publish Quiz</Button>
+              {/* <Button variant="outline">Save as Draft</Button> */}
+              <Button
+                onClick={handleQuizSubmit}
+                disabled={
+                  isSubmitting ||
+                  !quizData.section ||
+                  !quizData.chapterId ||
+                  !quizData.levelId ||
+                  !quizData.instruction
+                }
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2Icon className="w-4 h-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  'Publish Quiz'
+                )}
+              </Button>
             </div>
           )}
         </div>
@@ -736,8 +1402,11 @@ export default function QuizCreator() {
                 <Badge variant="outline">{quizData.novel}</Badge>
               </div>
               <p>
-                <strong>Kabanata:</strong> {quizData.kabanata} |{' '}
-                <strong>Level:</strong> {quizData.level}
+                <strong>Chapter:</strong>{' '}
+                {chapterInfo
+                  ? `${chapterInfo.chapter} (${chapterInfo.title})`
+                  : '-'}{' '}
+                | <strong>Level:</strong> {levelInfo ? levelInfo.levelNo : '-'}
               </p>
               <p>
                 <strong>Game Type:</strong> {gameTypeLabels[quizData.gameType]}
