@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { NovelType, SceneTypes } from '../src/lib/types';
 import { internal } from './_generated/api';
+import { Doc } from './_generated/dataModel';
 import { httpAction, internalQuery } from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
@@ -71,9 +72,18 @@ export const getChaptersDialogues = internalQuery({
         dialogues: filteredChapter.dialogues,
       }
     );
+
+    const levels: Doc<'games'>[] = await ctx.runQuery(
+      internal.levels.getLevelsByChapterId,
+      {
+        chapterId: filteredChapter._id,
+        kabanata: args.chapterNo,
+      }
+    );
     return {
       novel_metadata: filteredChapter,
       scenes: scenes,
+      levels: levels,
     };
   },
 });

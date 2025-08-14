@@ -57,7 +57,7 @@ const schema = defineSchema({
   levels: defineTable({
     chapterId: v.id('chapters'),
     levelNo: v.number(),
-  }),
+  }).index('by_chapterId', ['chapterId']),
 
   // dialogues: defineTable({
   //   novel: v.union(
@@ -182,7 +182,9 @@ const schema = defineSchema({
     time_limit: v.number(),
     instruction: v.string(),
     points: v.number(),
-  }).index('by_section_kabanata_level', ['section', 'kabanata', 'level']),
+  })
+    .index('by_section_kabanata_level', ['section', 'kabanata', 'level'])
+    .index('by_levelId', ['levelId']),
 
   sections: defineTable({
     name: v.string(), // e.g. "Section 1"

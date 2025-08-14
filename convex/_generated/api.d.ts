@@ -19,6 +19,7 @@ import type * as characters from "../characters.js";
 import type * as files from "../files.js";
 import type * as helpers_users from "../helpers/users.js";
 import type * as http from "../http.js";
+import type * as levels from "../levels.js";
 import type * as progress from "../progress.js";
 import type * as sections from "../sections.js";
 import type * as students from "../students.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   "helpers/users": typeof helpers_users;
   http: typeof http;
+  levels: typeof levels;
   progress: typeof progress;
   sections: typeof sections;
   students: typeof students;
