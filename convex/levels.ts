@@ -15,7 +15,7 @@ export const getLevelsByChapterId = internalQuery({
 
     const games = await ctx.db
       .query('games')
-      .filter((q) => q.eq(q.field('kabanata'), args.kabanata))
+      .filter((q) => q.eq(q.field('chapterId'), args.chapterId))
       .collect();
     const levelGame = await asyncMap(levels, async (level) => {
       const game = games.find((game) => game.levelId === level._id);
