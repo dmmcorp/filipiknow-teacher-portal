@@ -117,8 +117,9 @@ const schema = defineSchema({
       v.literal('Noli me tangere'),
       v.literal('El Filibusterismo')
     ),
-    kabanata: v.number(), // 1–64 for Noli, 1–39 for El Fili
-    level: v.number(), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
+    // kabanata: v.number(), // 1–64 for Noli, 1–39 for El Fili
+    chapterId: v.id('chapters'),
+    // level: v.number(), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
@@ -167,22 +168,24 @@ const schema = defineSchema({
       })
     ),
 
-    whoSaidIt: v.object({
-      question: v.string(), // e.g. "Sino sa mga nasa litrato ang nagsabi sa linyang ito:"
-      quote: v.string(), // e.g. "Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!"
-      hint: v.optional(v.string()), // e.g. "Isa siyang indiyo na naging padre"
-      options: v.array(
-        v.object({
-          name: v.string(), // e.g. "Padre Damaso"
-          image: v.optional(v.string()), // e.g. "https://example.com/padre_damaso.jpg"
-          isCorrect: v.optional(v.boolean()), // true for the correct answer
-        })
-      ),
-    }),
+    whoSaidIt: v.optional(
+      v.object({
+        question: v.string(), // e.g. "Sino sa mga nasa litrato ang nagsabi sa linyang ito:"
+        quote: v.string(), // e.g. "Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!"
+        hint: v.optional(v.string()), // e.g. "Isa siyang indiyo na naging padre"
+        options: v.array(
+          v.object({
+            name: v.string(), // e.g. "Padre Damaso"
+            image: v.optional(v.string()), // e.g. "https://example.com/padre_damaso.jpg"
+            isCorrect: v.optional(v.boolean()), // true for the correct answer
+          })
+        ),
+      })
+    ),
     time_limit: v.number(),
     instruction: v.string(),
     points: v.number(),
-  }).index('by_section_kabanata_level', ['section', 'kabanata', 'level']),
+  }).index('by_section_kabanata_level', ['section', 'chapterId', 'levelId']),
 
   sections: defineTable({
     name: v.string(), // e.g. "Section 1"
