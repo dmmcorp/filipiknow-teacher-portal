@@ -372,6 +372,26 @@ export default function QuizCreator() {
             options: quizData.multipleChoice.options,
           },
         });
+      } else if (
+        quizData.gameType === 'jigsawPuzzle' &&
+        quizData.jigsawPuzzle
+      ) {
+        if (!quizData.jigsawPuzzle.image) {
+          throw new Error('Puzzle image is required');
+        }
+        if (!quizData.jigsawPuzzle.rows || !quizData.jigsawPuzzle.columns) {
+          throw new Error('Rows and columns are required');
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'jigsawPuzzle',
+          jigsawPuzzle: {
+            image: quizData.jigsawPuzzle.image,
+            rows: quizData.jigsawPuzzle.rows,
+            columns: quizData.jigsawPuzzle.columns,
+          },
+        });
       }
 
       toast.success('Quiz created successfully!');
@@ -663,9 +683,9 @@ export default function QuizCreator() {
                     <Image
                       src={imagePreviews[index] || '/placeholder.svg'}
                       alt={`Image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                      width={200}
-                      height={200}
+                      className="w-full h-60 object-cover rounded-lg border bg-gray-50"
+                      width={300}
+                      height={300}
                     />
                     <Button
                       size="sm"
@@ -885,69 +905,180 @@ export default function QuizCreator() {
     );
   };
 
-  const renderJigsawPuzzleForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Puzzle Image</Label>
-        <Button
-          variant="outline"
-          className="w-full h-48 border-dashed bg-transparent"
-        >
-          <Upload className="w-6 h-6 mr-2" />
-          Upload Puzzle Image
-        </Button>
-      </div>
+  const renderJigsawPuzzleForm = () => {
+    const handleJigsawImageUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      <div className="grid grid-cols-2 gap-4">
+      setUploadingImageIndex(-1);
+
+      // Create preview URL immediately
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews((prev) => ({ ...prev, [-1]: previewUrl }));
+
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error('Failed to upload image');
+
+        const { storageId } = await result.json();
+        updateQuizData('jigsawPuzzle', {
+          ...quizData.jigsawPuzzle,
+          image: storageId,
+        });
+
+        toast.success('Image uploaded successfully!');
+      } catch (error) {
+        toast.error('Failed to upload image');
+        // Clean up preview URL on error
+        URL.revokeObjectURL(previewUrl);
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[-1];
+          return next;
+        });
+      } finally {
+        setUploadingImageIndex(null);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="rows">Rows</Label>
-          <Select
-            value={quizData.jigsawPuzzle?.rows?.toString() || '3'}
-            onValueChange={(value) =>
-              updateQuizData('jigsawPuzzle', {
-                ...quizData.jigsawPuzzle,
-                rows: Number.parseInt(value),
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2, 3, 4, 5, 6].map((num) => (
-                <SelectItem key={num} value={num.toString()}>
-                  {num} rows
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Puzzle Image</Label>
+          <div className="relative">
+            {quizData.jigsawPuzzle?.image ? (
+              <div className="relative">
+                <Image
+                  src={imagePreviews[-1] || '/placeholder.svg'}
+                  alt="Puzzle Image"
+                  className="w-full h-[400px] object-cover rounded-lg border"
+                  width={300}
+                  height={300}
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 w-6 h-6 p-0"
+                  onClick={() => {
+                    updateQuizData('jigsawPuzzle', {
+                      ...quizData.jigsawPuzzle,
+                      image: undefined,
+                    });
+                    // Clean up preview URL
+                    if (imagePreviews[-1]) {
+                      URL.revokeObjectURL(imagePreviews[-1]);
+                      setImagePreviews((prev) => {
+                        const next = { ...prev };
+                        delete next[-1];
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full h-48 border-dashed bg-transparent relative"
+                disabled={uploadingImageIndex !== null}
+              >
+                {uploadingImageIndex === -1 ? (
+                  <Loader2Icon className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 mr-2" />
+                    Upload Puzzle Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleJigsawImageUpload}
+                      disabled={uploadingImageIndex !== null}
+                    />
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Upload a clear image that will be split into puzzle pieces
+          </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="columns">Columns</Label>
-          <Select
-            value={quizData.jigsawPuzzle?.columns?.toString() || '3'}
-            onValueChange={(value) =>
-              updateQuizData('jigsawPuzzle', {
-                ...quizData.jigsawPuzzle,
-                columns: Number.parseInt(value),
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2, 3, 4, 5, 6].map((num) => (
-                <SelectItem key={num} value={num.toString()}>
-                  {num} columns
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="rows">Rows</Label>
+            <Select
+              value={quizData.jigsawPuzzle?.rows?.toString() || '3'}
+              onValueChange={(value) =>
+                updateQuizData('jigsawPuzzle', {
+                  ...quizData.jigsawPuzzle,
+                  rows: Number(value),
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2, 3, 4, 5, 6].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} rows
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="columns">Columns</Label>
+            <Select
+              value={quizData.jigsawPuzzle?.columns?.toString() || '3'}
+              onValueChange={(value) =>
+                updateQuizData('jigsawPuzzle', {
+                  ...quizData.jigsawPuzzle,
+                  columns: Number(value),
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2, 3, 4, 5, 6].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} columns
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {quizData.jigsawPuzzle?.image && (
+          <div className="mt-4 p-4 bg-muted rounded-lg">
+            <p className="text-sm font-medium">Preview Settings:</p>
+            <p className="text-sm text-muted-foreground">
+              This image will be split into{' '}
+              {(quizData.jigsawPuzzle?.rows || 3) *
+                (quizData.jigsawPuzzle?.columns || 3)}{' '}
+              pieces ({quizData.jigsawPuzzle?.rows || 3} rows ×{' '}
+              {quizData.jigsawPuzzle?.columns || 3} columns)
+            </p>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderWhoSaidItForm = () => (
     <div className="space-y-6">

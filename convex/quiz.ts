@@ -75,7 +75,14 @@ export const createQuiz = mutation({
                 text: v.string(),
                 isCorrect: v.boolean(),
             })),
-        }))
+        })),
+        jigsawPuzzle: v.optional(
+            v.object({
+                image: v.string(),
+                rows: v.number(),
+                columns: v.number(),
+            })
+        ),
     },
     handler: async (ctx, args) => {
 
@@ -95,6 +102,7 @@ export const createQuiz = mutation({
             gameType: "4pics1word",
             fourPicsOneWord: args.fourPicsOneWord,
             multipleChoice: args.multipleChoice,
+            jigsawPuzzle: args.jigsawPuzzle,
             instruction: args.instruction,
             time_limit: args.timeLimit,
             points: args.points,
