@@ -117,9 +117,9 @@ const schema = defineSchema({
       v.literal('Noli me tangere'),
       v.literal('El Filibusterismo')
     ),
-    // kabanata: v.number(), // 1–64 for Noli, 1–39 for El Fili
-    chapterId: v.id('chapters'),
-    // level: v.number(), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
+    // kabanata: v.optional(v.number()), // 1–64 for Noli, 1–39 for El Fili
+    chapterId: v.optional(v.id('chapters')),
+    // level: v.optional(v.number()), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
@@ -188,6 +188,13 @@ const schema = defineSchema({
   })
     .index('by_section_kabanata_level', ['section', 'chapterId', 'levelId'])
     .index('by_levelId', ['levelId']),
+
+  student_scores: defineTable({
+    gameId: v.id('games'),
+    score: v.number(),
+    time_spent: v.number(),
+    progressId: v.id('progress'),
+  }),
 
   sections: defineTable({
     name: v.string(), // e.g. "Section 1"
