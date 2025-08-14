@@ -137,19 +137,19 @@ const schema = defineSchema({
     ),
 
     // Content for multiple choice
-    multipleChoice: v.optional(
-      v.object({
-        question: v.string(), // e.g. "Sinong tauhan sa kwento ang nagalit sa ‘Tinola’?"
-        image: v.optional(v.string()), // optional image for the question (e.g. Tinola)
-        options: v.array(
-          v.object({
-            text: v.string(), // e.g. "Crisostomo Ibarra"
-            image: v.optional(v.string()), // optional image for the choice
-            isCorrect: v.optional(v.boolean()), // true for the correct answer
-          })
-        ), // 4 choices, each can have image
-      })
-    ),
+    // multipleChoice: v.optional(
+    //   v.object({
+    //     question: v.string(), // e.g. "Sinong tauhan sa kwento ang nagalit sa ‘Tinola’?"
+    //     image: v.optional(v.string()), // optional image for the question (e.g. Tinola)
+    //     options: v.array(
+    //       v.object({
+    //         text: v.string(), // e.g. "Crisostomo Ibarra"
+    //         image: v.optional(v.string()), // optional image for the choice
+    //         isCorrect: v.optional(v.boolean()), // true for the correct answer
+    //       })
+    //     ), // 4 choices, each can have image
+    //   })
+    // ),
 
     identification: v.optional(
       v.object({

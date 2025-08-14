@@ -12,7 +12,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -38,12 +37,19 @@ interface Student {
   gradeLevel: string;
   userDetails: {
     _id: Id<'users'>;
+    _creationTime: number;
+    image?: string | undefined;
+    isActive?: boolean | undefined;
+    emailVerified?: boolean | undefined;
+    licenseNumber?: string | undefined;
+    gradeLevel?: string | undefined;
+    certification?: string | undefined;
+    phoneNumber?: string | undefined;
     fname: string;
     lname: string;
     email: string;
-    image?: string;
-    role?: string;
-  };
+    role: 'teacher' | 'student' | 'admin';
+  } | null;
 }
 
 export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
@@ -83,6 +89,8 @@ export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
     return 'text-red-600';
   };
 
+  console.log('sections:', section);
+
   const renderStudentDetails = () => {
     if (!selectedStudent) return null;
 
@@ -92,11 +100,11 @@ export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
             <h3 className="text-lg font-semibold">
-              {selectedStudent.userDetails.fname}{' '}
-              {selectedStudent.userDetails.lname}
+              {selectedStudent.userDetails?.fname}{' '}
+              {selectedStudent.userDetails?.lname}
             </h3>
             <p className="text-sm text-gray-600">
-              {selectedStudent.userDetails.email}
+              {selectedStudent.userDetails?.email}
             </p>
             <div className="flex gap-2 mt-1">
               <Badge variant="outline">{section.name}</Badge>
@@ -212,8 +220,7 @@ export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      // @ts-expect-error slight type mismatch will fix later. MARKED AS TODO....
-                      onClick={() => handleViewDetails(student.userDetails)}
+                      onClick={() => handleViewDetails(student)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
@@ -231,9 +238,10 @@ export default function SectionDetails({ sectionId }: { sectionId: string[] }) {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white">
           <DialogHeader>
             <DialogTitle>Student Progress Details</DialogTitle>
-            <DialogDescription>
+            {/* MARKED AS TODO, SHOULD ADD MORE DETAILED PROGRESS WHEN THE GAME IS COMPLETE... PART OF ANALYTICS */}
+            {/* <DialogDescription>
               Detailed progress and performance analytics
-            </DialogDescription>
+            </DialogDescription> */}
           </DialogHeader>
           {renderStudentDetails()}
         </DialogContent>
