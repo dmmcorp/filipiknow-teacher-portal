@@ -62,8 +62,8 @@ interface QuizData {
     image?: string;
     options: Array<{
       text: string;
-      image?: string;
-      isCorrect?: boolean;
+      // image?: string;
+      isCorrect: boolean;
     }>;
   };
   jigsawPuzzle?: {
@@ -267,6 +267,49 @@ export default function QuizCreator() {
     }
   };
 
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImageIndex(-1);
+
+    // Create preview URL immediately
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews((prev) => ({ ...prev, [-1]: previewUrl }));
+
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!result.ok) throw new Error('Failed to upload image');
+
+      const { storageId } = await result.json();
+      updateQuizData('multipleChoice', {
+        ...quizData.multipleChoice,
+        image: storageId,
+      });
+
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      toast.error('Failed to upload image');
+      // Clean up preview on error
+      URL.revokeObjectURL(previewUrl);
+      setImagePreviews((prev) => {
+        const next = { ...prev };
+        delete next[-1];
+        return next;
+      });
+    } finally {
+      setUploadingImageIndex(null);
+    }
+  };
+
   const handleQuizSubmit = async () => {
     if (
       !user?._id ||
@@ -280,22 +323,56 @@ export default function QuizCreator() {
 
     setIsSubmitting(true);
     try {
-      await createQuiz({
+      const quizPayload = {
         teacherId: user._id,
         section: quizData.section,
         novel: quizData.novel,
         chapterId: quizData.chapterId,
         levelId: quizData.levelId,
-        gameType: '4pics1word',
+        gameType: quizData.gameType,
         instruction: quizData.instruction,
         timeLimit: quizData.time_limit,
         points: quizData.points,
-        fourPicsOneWord: {
-          images: quizData.fourPicsOneWord?.images || [],
-          clue: quizData.fourPicsOneWord?.clue || '',
-          answer: quizData.fourPicsOneWord?.answer || '',
-        },
-      });
+      };
+
+      if (quizData.gameType === '4pics1word' && quizData.fourPicsOneWord) {
+        await createQuiz({
+          ...quizPayload,
+          gameType: '4pics1word',
+          fourPicsOneWord: {
+            images: quizData.fourPicsOneWord.images || [],
+            clue: quizData.fourPicsOneWord.clue || '',
+            answer: quizData.fourPicsOneWord.answer || '',
+          },
+        });
+      } else if (
+        quizData.gameType === 'multipleChoice' &&
+        quizData.multipleChoice
+      ) {
+        // Validate multiple choice data
+        if (!quizData.multipleChoice.question) {
+          throw new Error('Question is required');
+        }
+        if (
+          !quizData.multipleChoice.options ||
+          quizData.multipleChoice.options.length === 0
+        ) {
+          throw new Error('At least one option is required');
+        }
+        if (!quizData.multipleChoice.options.some((opt) => opt.isCorrect)) {
+          throw new Error('At least one correct answer must be selected');
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'multipleChoice',
+          multipleChoice: {
+            question: quizData.multipleChoice.question,
+            image: quizData.multipleChoice.image,
+            options: quizData.multipleChoice.options,
+          },
+        });
+      }
 
       toast.success('Quiz created successfully!');
     } catch (error) {
@@ -679,79 +756,134 @@ export default function QuizCreator() {
     };
   }, [imagePreviews]);
 
-  const renderMultipleChoiceForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="question">Question</Label>
-        <Textarea
-          id="question"
-          placeholder="e.g., Sinong tauhan sa kwento ang nagalit sa 'Tinola'?"
-          value={quizData.multipleChoice?.question || ''}
-          onChange={(e) =>
-            updateQuizData('multipleChoice', {
-              ...quizData.multipleChoice,
-              question: e.target.value,
-            })
-          }
-        />
-      </div>
+  const renderMultipleChoiceForm = () => {
+    const hasCorrectAnswer = quizData.multipleChoice?.options?.some(
+      (opt) => opt.isCorrect
+    );
 
-      <div className="space-y-2">
-        <Label>Question Image (Optional)</Label>
-        <Button
-          variant="outline"
-          className="w-full h-32 border-dashed bg-transparent"
-        >
-          <Upload className="w-6 h-6 mr-2" />
-          Upload Question Image
-        </Button>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Answer Options</Label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => addOption('multipleChoice')}
-            disabled={(quizData.multipleChoice?.options?.length || 0) >= 4}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Option
-          </Button>
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="question">Question</Label>
+          <Textarea
+            id="question"
+            placeholder="e.g., Sinong tauhan sa kwento ang nagalit sa 'Tinola'?"
+            value={quizData.multipleChoice?.question || ''}
+            onChange={(e) =>
+              updateQuizData('multipleChoice', {
+                ...quizData.multipleChoice,
+                question: e.target.value,
+              })
+            }
+          />
         </div>
 
-        {(quizData.multipleChoice?.options || []).map((option, index) => (
-          <div key={index} className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Option {index + 1}</Label>
-              <Checkbox
-                checked={option.isCorrect || false}
-                onCheckedChange={(checked) =>
-                  updateOption('multipleChoice', index, 'isCorrect', checked)
+        <div className="space-y-2">
+          <Label>Question Image (Optional)</Label>
+          <div className="relative">
+            {quizData.multipleChoice?.image ? (
+              <div className="relative">
+                <Image
+                  src={imagePreviews[-1] || '/placeholder.svg'}
+                  alt="Question Image"
+                  className="w-[300px] h-[300px] object-cover rounded-lg border"
+                  width={200}
+                  height={200}
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 w-6 h-6 p-0"
+                  onClick={() => {
+                    updateQuizData('multipleChoice', {
+                      ...quizData.multipleChoice,
+                      image: undefined,
+                    });
+                    // Clean up preview URL
+                    if (imagePreviews[-1]) {
+                      URL.revokeObjectURL(imagePreviews[-1]);
+                      setImagePreviews((prev) => {
+                        const next = { ...prev };
+                        delete next[-1];
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full h-32 border-dashed bg-transparent relative"
+                disabled={uploadingImageIndex !== null}
+              >
+                {uploadingImageIndex === -1 ? (
+                  <Loader2Icon className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 mr-2" />
+                    Upload Question Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImageIndex !== null}
+                    />
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Answer Options</Label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => addOption('multipleChoice')}
+              disabled={(quizData.multipleChoice?.options?.length || 0) >= 4}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Option
+            </Button>
+          </div>
+
+          {!hasCorrectAnswer &&
+            (quizData.multipleChoice?.options?.length || 0) > 0 && (
+              <p className="text-yellow-600 text-sm">
+                Please select at least one correct answer
+              </p>
+            )}
+
+          {(quizData.multipleChoice?.options || []).map((option, index) => (
+            <div key={index} className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Option {index + 1}</Label>
+                <Checkbox
+                  checked={option.isCorrect || false}
+                  onCheckedChange={(checked) =>
+                    updateOption('multipleChoice', index, 'isCorrect', checked)
+                  }
+                />
+              </div>
+              <Input
+                placeholder="Enter option text"
+                value={option.text}
+                onChange={(e) =>
+                  updateOption('multipleChoice', index, 'text', e.target.value)
                 }
               />
             </div>
-            <Input
-              placeholder="Enter option text"
-              value={option.text}
-              onChange={(e) =>
-                updateOption('multipleChoice', index, 'text', e.target.value)
-              }
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-transparent"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Option Image (Optional)
-            </Button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderJigsawPuzzleForm = () => (
     <div className="space-y-6">
@@ -896,14 +1028,14 @@ export default function QuizCreator() {
                 updateOption('whoSaidIt', index, 'name', e.target.value)
               }
             />
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               className="w-full bg-transparent"
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload Character Image (Optional)
-            </Button>
+            </Button> */}
           </div>
         ))}
       </div>

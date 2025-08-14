@@ -53,15 +53,29 @@ export const createQuiz = mutation({
         ),
         chapterId: v.id("chapters"),
         levelId: v.id("levels"),
-        gameType: v.literal("4pics1word"),
+        gameType: v.union(
+            v.literal('4pics1word'),
+            v.literal('multipleChoice'),
+            v.literal('jigsawPuzzle'),
+            v.literal('whoSaidIt'),
+            v.literal('identification')
+        ),
         instruction: v.string(),
         timeLimit: v.number(),
         points: v.number(),
-        fourPicsOneWord: v.object({
+        fourPicsOneWord: v.optional(v.object({
             images: v.array(v.string()),
             clue: v.string(),
             answer: v.string(),
-        })
+        })),
+        multipleChoice: v.optional(v.object({
+            question: v.string(),
+            image: v.optional(v.string()),
+            options: v.array(v.object({
+                text: v.string(),
+                isCorrect: v.boolean(),
+            })),
+        }))
     },
     handler: async (ctx, args) => {
 
@@ -80,6 +94,7 @@ export const createQuiz = mutation({
             levelId: args.levelId,
             gameType: "4pics1word",
             fourPicsOneWord: args.fourPicsOneWord,
+            multipleChoice: args.multipleChoice,
             instruction: args.instruction,
             time_limit: args.timeLimit,
             points: args.points,
