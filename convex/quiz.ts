@@ -83,6 +83,20 @@ export const createQuiz = mutation({
                 columns: v.number(),
             })
         ),
+        whoSaidIt: v.optional(
+            v.object({
+                question: v.string(),
+                quote: v.string(),
+                hint: v.optional(v.string()),
+                options: v.array(
+                    v.object({
+                        name: v.string(),
+                        image: v.optional(v.string()),
+                        isCorrect: v.optional(v.boolean()),
+                    })
+                ),
+            })
+        ),
     },
     handler: async (ctx, args) => {
 
@@ -103,6 +117,7 @@ export const createQuiz = mutation({
             fourPicsOneWord: args.fourPicsOneWord,
             multipleChoice: args.multipleChoice,
             jigsawPuzzle: args.jigsawPuzzle,
+            whoSaidIt: args.whoSaidIt,
             instruction: args.instruction,
             time_limit: args.timeLimit,
             points: args.points,

@@ -392,8 +392,38 @@ export default function QuizCreator() {
             columns: quizData.jigsawPuzzle.columns,
           },
         });
-      }
+      } else if (quizData.gameType === 'whoSaidIt' && quizData.whoSaidIt) {
+        if (!quizData.whoSaidIt.question) {
+          throw new Error('Question is required');
+        }
+        if (!quizData.whoSaidIt.quote) {
+          throw new Error('Quote is required');
+        }
+        if (
+          !quizData.whoSaidIt.options ||
+          quizData.whoSaidIt.options.length === 0
+        ) {
+          throw new Error('At least one character option is required');
+        }
+        if (!quizData.whoSaidIt.options.some((opt) => opt.isCorrect)) {
+          throw new Error('At least one correct answer must be selected');
+        }
 
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'whoSaidIt',
+          whoSaidIt: {
+            question: quizData.whoSaidIt.question,
+            quote: quizData.whoSaidIt.quote,
+            hint: quizData.whoSaidIt.hint,
+            options: quizData.whoSaidIt.options.map((opt) => ({
+              name: opt.name,
+              image: opt.image,
+              isCorrect: opt.isCorrect,
+            })),
+          },
+        });
+      }
       toast.success('Quiz created successfully!');
     } catch (error) {
       toast.error('Failed to create quiz');
@@ -1080,98 +1110,205 @@ export default function QuizCreator() {
     );
   };
 
-  const renderWhoSaidItForm = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="question">Question</Label>
-        <Input
-          id="question"
-          placeholder="e.g., Sino sa mga nasa litrato ang nagsabi sa linyang ito:"
-          value={quizData.whoSaidIt?.question || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              question: e.target.value,
-            })
-          }
-        />
-      </div>
+  const renderWhoSaidItForm = () => {
+    const handleCharacterImageUpload = async (
+      event: React.ChangeEvent<HTMLInputElement>,
+      index: number
+    ) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      <div className="space-y-2">
-        <Label htmlFor="quote">Quote</Label>
-        <Textarea
-          id="quote"
-          placeholder="e.g., Ang isang indiyo ay kailanma'y hindi maaring lumampas sa fraile!"
-          value={quizData.whoSaidIt?.quote || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              quote: e.target.value,
-            })
-          }
-        />
-      </div>
+      setUploadingImageIndex(index);
 
-      <div className="space-y-2">
-        <Label htmlFor="hint">Hint (Optional)</Label>
-        <Input
-          id="hint"
-          placeholder="e.g., Isa siyang indiyo na naging padre"
-          value={quizData.whoSaidIt?.hint || ''}
-          onChange={(e) =>
-            updateQuizData('whoSaidIt', {
-              ...quizData.whoSaidIt,
-              hint: e.target.value,
-            })
-          }
-        />
-      </div>
+      // Create preview URL immediately
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews((prev) => ({ ...prev, [index]: previewUrl }));
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Character Options</Label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => addOption('whoSaidIt')}
-            disabled={(quizData.whoSaidIt?.options?.length || 0) >= 4}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Character
-          </Button>
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!result.ok) throw new Error('Failed to upload image');
+
+        const { storageId } = await result.json();
+        const current = quizData.whoSaidIt?.options || [];
+        const updatedOptions = [...current];
+        updatedOptions[index] = {
+          ...updatedOptions[index],
+          image: storageId,
+        };
+
+        updateQuizData('whoSaidIt', {
+          ...quizData.whoSaidIt,
+          options: updatedOptions,
+        });
+
+        toast.success('Character image uploaded successfully!');
+      } catch (error) {
+        toast.error('Failed to upload image');
+        // Clean up preview on error
+        URL.revokeObjectURL(previewUrl);
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      } finally {
+        setUploadingImageIndex(null);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="question">Question</Label>
+          <Input
+            id="question"
+            placeholder="e.g., Who said this quote from Chapter 1?"
+            value={quizData.whoSaidIt?.question || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                question: e.target.value,
+              })
+            }
+          />
         </div>
 
-        {(quizData.whoSaidIt?.options || []).map((option, index) => (
-          <div key={index} className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Character {index + 1}</Label>
-              <Checkbox
-                checked={option.isCorrect || false}
-                onCheckedChange={(checked) =>
-                  updateOption('whoSaidIt', index, 'isCorrect', checked)
+        <div className="space-y-2">
+          <Label htmlFor="quote">Quote</Label>
+          <Textarea
+            id="quote"
+            placeholder="Enter the quote here..."
+            value={quizData.whoSaidIt?.quote || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                quote: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="hint">Hint (Optional)</Label>
+          <Input
+            id="hint"
+            placeholder="Add a hint to help students"
+            value={quizData.whoSaidIt?.hint || ''}
+            onChange={(e) =>
+              updateQuizData('whoSaidIt', {
+                ...quizData.whoSaidIt,
+                hint: e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Character Options</Label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => addOption('whoSaidIt')}
+              disabled={(quizData.whoSaidIt?.options?.length || 0) >= 4}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Character
+            </Button>
+          </div>
+
+          {(quizData.whoSaidIt?.options || []).map((option, index) => (
+            <div key={index} className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between mb-4">
+                <Label>Character {index + 1}</Label>
+                <Checkbox
+                  checked={option.isCorrect || false}
+                  onCheckedChange={(checked) =>
+                    updateOption('whoSaidIt', index, 'isCorrect', checked)
+                  }
+                />
+              </div>
+
+              <Input
+                placeholder="Character name"
+                value={option.name}
+                onChange={(e) =>
+                  updateOption('whoSaidIt', index, 'name', e.target.value)
                 }
               />
+
+              {/* <div className="mt-4">
+                {option.image ? (
+                  <div className="relative">
+                    <Image
+                      src={imagePreviews[index] || '/placeholder.svg'}
+                      alt={option.name || `Character ${index + 1}`}
+                      className="w-32 h-32 object-cover rounded-lg"
+                      width={128}
+                      height={128}
+                    />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2 w-6 h-6 p-0"
+                      onClick={() => {
+                        updateOption('whoSaidIt', index, 'image', undefined);
+                        // Clean up preview URL
+                        if (imagePreviews[index]) {
+                          URL.revokeObjectURL(imagePreviews[index]);
+                          setImagePreviews((prev) => {
+                            const next = { ...prev };
+                            delete next[index];
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full h-32 border-dashed bg-transparent relative"
+                    disabled={uploadingImageIndex !== null}
+                  >
+                    {uploadingImageIndex === index ? (
+                      <Loader2Icon className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 mr-2" />
+                        Upload Character Image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => handleCharacterImageUpload(e, index)}
+                          disabled={uploadingImageIndex !== null}
+                        />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div> */}
             </div>
-            <Input
-              placeholder="Character name"
-              value={option.name}
-              onChange={(e) =>
-                updateOption('whoSaidIt', index, 'name', e.target.value)
-              }
-            />
-            {/* <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-transparent"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Character Image (Optional)
-            </Button> */}
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {quizData.whoSaidIt?.options?.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Add character options using the button above
+          </p>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep3 = () => (
     <Card>
