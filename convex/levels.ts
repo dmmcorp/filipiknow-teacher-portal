@@ -21,7 +21,10 @@ export const getLevelsByChapterId = internalQuery({
       const game = games.find((game) => game.levelId === level._id);
       if (!game) return null;
 
-      return game;
+      return {
+        ...level,
+        game: game,
+      };
     });
 
     const filteredLevelGame = levelGame.filter((g) => g != null);

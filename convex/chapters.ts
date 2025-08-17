@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
-import { NovelType, SceneTypes } from '../src/lib/types';
+import { LevelGames, NovelType, SceneTypes } from '../src/lib/types';
 import { internal } from './_generated/api';
-import { Doc } from './_generated/dataModel';
 import { httpAction, internalQuery } from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
@@ -73,7 +72,7 @@ export const getChaptersDialogues = internalQuery({
       }
     );
 
-    const levels: Doc<'games'>[] = await ctx.runQuery(
+    const levels: LevelGames[] = await ctx.runQuery(
       internal.levels.getLevelsByChapterId,
       {
         chapterId: filteredChapter._id,

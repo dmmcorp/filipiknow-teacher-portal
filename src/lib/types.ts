@@ -1,4 +1,4 @@
-import { Id } from '../../convex/_generated/dataModel';
+import { Doc, Id } from '../../convex/_generated/dataModel';
 
 export type AuthFlow = 'signIn' | 'signUp';
 
@@ -43,6 +43,10 @@ export interface CharacterDialogueType {
   scene_bg_image?: string | undefined;
   sceneNumber: number;
   text: string;
+}
+
+export interface LevelGames extends Doc<'levels'> {
+  game: Doc<'games'>;
 }
 
 // //type for getChapterData query in a convex/dialogue.ts
