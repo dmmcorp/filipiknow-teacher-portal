@@ -37,12 +37,17 @@ export const getCharacterData = internalQuery({
           ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
           : '';
 
+        const bgImgUrl = dialogue.scene_bg_image
+          ? await ctx.storage.getUrl(dialogue.scene_bg_image as Id<'_storage'>)
+          : '';
+
         return {
           ...dialogue,
           speaker: {
             name: character.name,
             image: imgUrl,
           },
+          scene_bg_image: bgImgUrl,
         };
       }
     );
