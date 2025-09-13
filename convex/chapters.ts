@@ -1,7 +1,9 @@
+import { asyncMap } from 'convex-helpers';
 import { v } from 'convex/values';
 import { LevelGames, NovelType, SceneTypes } from '../src/lib/types';
 import { internal } from './_generated/api';
-import { httpAction, internalQuery } from './_generated/server';
+import { Id } from './_generated/dataModel';
+import { httpAction, internalQuery, query } from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
@@ -65,6 +67,10 @@ export const getChaptersDialogues = internalQuery({
         `No Chapter found using ${args.novel} - Chapter: ${args.chapterNo}`
       );
 
+    const bgImgUrl = filteredChapter.bg_image
+      ? await ctx.storage.getUrl(filteredChapter.bg_image as Id<'_storage'>)
+      : '';
+
     const scenes: SceneTypes[] = await ctx.runQuery(
       internal.characters.getCharacterData,
       {
@@ -80,9 +86,68 @@ export const getChaptersDialogues = internalQuery({
       }
     );
     return {
-      novel_metadata: filteredChapter,
+      novel_metadata: {
+        ...filteredChapter,
+        bg_image: bgImgUrl,
+      },
       scenes: scenes,
       levels: levels,
+    };
+  },
+});
+
+export const getChapters = query({
+  args: {
+    novel: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.novel) return [];
+    const chapters = await ctx.db
+      .query('chapters')
+      .filter((q) => q.eq(q.field('novel'), args.novel))
+      .collect();
+    const chapterWIthLevelsAndDialogues = await asyncMap(
+      chapters,
+      async (chapter) => {
+        const levels = await ctx.db
+          .query('levels')
+          .withIndex('by_chapterId', (q) => q.eq('chapterId', chapter._id))
+          .collect();
+        const dialogues = chapter.dialogues.length;
+        return {
+          ...chapter,
+          levels,
+          noOfDialogues: dialogues,
+        };
+      }
+    );
+    return chapterWIthLevelsAndDialogues;
+  },
+});
+
+export const getChapterById = query({
+  args: {
+    chapterId: v.id('chapters'),
+  },
+  handler: async (ctx, args) => {
+    const chapter = await ctx.db.get(args.chapterId);
+    if (!chapter) throw new Error(`Chapter not found: ${args.chapterId}`);
+    const levels = await ctx.db
+      .query('levels')
+      .withIndex('by_chapterId', (q) => q.eq('chapterId', args.chapterId))
+      .collect();
+    const scenes: SceneTypes[] = await ctx.runQuery(
+      internal.characters.getCharacterData,
+      {
+        dialogues: chapter.dialogues,
+      }
+    );
+    const characters = [...new Set(scenes.map((scene) => scene.speakerId))];
+    return {
+      ...chapter,
+      levels,
+      dialogues: scenes,
+      characters,
     };
   },
 });
