@@ -26,7 +26,15 @@ export const getCharacterData = internalQuery({
       args.dialogues,
       async (dialogue) => {
         if (!dialogue.speakerId) {
-          return null;
+          const bgImgUrl = dialogue.scene_bg_image
+            ? await ctx.storage.getUrl(
+                dialogue.scene_bg_image as Id<'_storage'>
+              )
+            : '';
+          return {
+            ...dialogue,
+            scene_bg_image: bgImgUrl,
+          };
         }
         const character = await ctx.db.get(dialogue.speakerId);
         if (!character) {
