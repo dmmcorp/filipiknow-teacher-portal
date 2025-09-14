@@ -22,17 +22,17 @@ export const AuthScreen = () => {
         <div className="h-full w-full mx-auto my-[100px]">
           <div className="w-full flex flex-col items-center space-y-5">
             <Image
-              src="/images/logo.svg"
+              src="/assets/logo-transparent.png"
               alt="logo image"
               height={76}
-              width={368}
+              width={240}
             />
-            <Image
+            {/* <Image
               src="/images/school-logo.svg"
               alt="school logo image"
               height={155}
               width={155}
-            />
+            /> */}
 
             <LoginCard setState={setState} />
           </div>
