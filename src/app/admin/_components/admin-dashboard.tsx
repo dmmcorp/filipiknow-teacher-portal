@@ -50,7 +50,7 @@ function AdminDashboard() {
         <Link
           href="/admin/sections"
           className={buttonVariants({
-            variant: 'default',
+            variant: 'primary',
           })}
         >
           Sections Management
@@ -107,10 +107,7 @@ function AdminDashboard() {
                     Manage your novel chapters and content
                   </CardDescription>
                 </div>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Chapter
-                </Button>
+                <Button variant="primary">Add Chapter</Button>
               </div>
             </CardHeader>
             <CardContent>

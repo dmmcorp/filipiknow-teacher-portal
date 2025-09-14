@@ -21,7 +21,7 @@ export default function RootLayout({
       <ConvexClientProvider>
         <AdminGuard>
           <div className="flex flex-col min-h-screen ">
-            <div className="flex justify-end w-full bg-blue-200 px-10 py-2">
+            <div className="flex justify-end w-full bg-background px-10 py-2">
               <UserDropdown />
             </div>
             <div className="flex-1 flex flex-col bg-gray-100">

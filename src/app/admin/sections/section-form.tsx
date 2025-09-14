@@ -113,7 +113,9 @@ export const SectionForm = ({
       </div>
 
       <DialogFooter>
-        <Button type="submit">{submitText}</Button>
+        <Button type="submit" variant="primary">
+          {submitText}
+        </Button>
       </DialogFooter>
     </form>
   );

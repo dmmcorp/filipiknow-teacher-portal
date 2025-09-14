@@ -471,6 +471,7 @@ export const RegisterCard = ({
             <div className="w-full flex justify-center items-center">
               <Button
                 className="w-full sm:w-[300px]"
+                variant="primary"
                 disabled={isSubmitting || isUploading}
               >
                 {isSubmitting

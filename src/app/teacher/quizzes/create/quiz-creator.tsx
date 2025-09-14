@@ -1360,7 +1360,9 @@ export default function QuizCreator() {
 
         <div className="flex gap-2">
           {currentStep < 3 ? (
-            <Button onClick={handleStepNext}>Next</Button>
+            <Button onClick={handleStepNext} variant="primary">
+              Next
+            </Button>
           ) : (
             <div className="flex gap-2">
               {/* <Button variant="outline">Save as Draft</Button> */}

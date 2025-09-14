@@ -1,15 +1,15 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import { toast } from "sonner";
-import { Loader2Icon } from "lucide-react";
-import { FunctionReturnType } from "convex/server";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from 'convex/react';
+import { FunctionReturnType } from 'convex/server';
+import { Loader2Icon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 type CurrentUserType = FunctionReturnType<typeof api.users.current>;
 
@@ -20,23 +20,23 @@ interface SecurityInformationProps {
 
 const securitySchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    currentPassword: z.string().min(1, 'Current password is required'),
     newPassword: z
       .string()
-      .min(8, "New password must be at least 8 characters")
+      .min(8, 'New password must be at least 8 characters')
       .optional(),
     confirmPassword: z.string().optional(),
-    email: z.string().email("Invalid email"),
+    email: z.string().email('Invalid email'),
     phoneNumber: z
       .string()
-      .regex(/^\d{10}$/, "Phone number must be 10 digits")
+      .regex(/^\d{10}$/, 'Phone number must be 10 digits')
       .optional(),
   })
   .refine(
     (data) => !data.newPassword || data.newPassword === data.confirmPassword,
     {
-      message: "Passwords do not match",
-      path: ["confirmPassword"],
+      message: 'Passwords do not match',
+      path: ['confirmPassword'],
     }
   );
 
@@ -56,41 +56,41 @@ export const SecurityInformation = ({
   } = useForm<SecurityFormValues>({
     resolver: zodResolver(securitySchema),
     defaultValues: {
-      email: current?.email || "",
-      phoneNumber: current?.phoneNumber || "",
+      email: current?.email || '',
+      phoneNumber: current?.phoneNumber || '',
     },
   });
 
   const onSubmit = async (data: SecurityFormValues) => {
     try {
       await updateSecurity({
-        userId: current?._id as Id<"users">,
+        userId: current?._id as Id<'users'>,
         // currentPassword: data.currentPassword,
         newPassword: data.newPassword,
         email: data.email,
         phoneNumber: data.phoneNumber,
       });
-      toast.success("Security information updated!");
+      toast.success('Security information updated!');
       reset();
     } catch (error: unknown) {
       if (
-        typeof error === "object" &&
+        typeof error === 'object' &&
         error !== null &&
-        "data" in error &&
-        typeof (error as { data?: string }).data === "string"
+        'data' in error &&
+        typeof (error as { data?: string }).data === 'string'
       ) {
         toast.error((error as { data: string }).data);
       } else if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error("Failed to update security information");
+        toast.error('Failed to update security information');
       }
     }
   };
 
   return (
     <>
-      {activeTab === "security" && (
+      {activeTab === 'security' && (
         <div className="border-0">
           <div className="p-8">
             <form onSubmit={handleSubmit(onSubmit)}>
@@ -117,7 +117,7 @@ export const SecurityInformation = ({
                         id="newPassword"
                         type="password"
                         className="bg-white"
-                        {...register("newPassword")}
+                        {...register('newPassword')}
                       />
                       {errors.newPassword && (
                         <span className="text-red-500 text-xs">
@@ -132,7 +132,7 @@ export const SecurityInformation = ({
                         id="emailInput"
                         type="email"
                         className="bg-white"
-                        {...register("email")}
+                        {...register('email')}
                       />
                       {errors.email && (
                         <span className="text-red-500 text-xs">
@@ -150,7 +150,7 @@ export const SecurityInformation = ({
                         id="confirmPassword"
                         type="password"
                         className="bg-white"
-                        {...register("confirmPassword")}
+                        {...register('confirmPassword')}
                       />
                       {errors.confirmPassword && (
                         <span className="text-red-500 text-xs">
@@ -171,7 +171,7 @@ export const SecurityInformation = ({
                           className="bg-white pl-15"
                           placeholder="9179615399"
                           maxLength={10}
-                          {...register("phoneNumber")}
+                          {...register('phoneNumber')}
                         />
                         {errors.phoneNumber && (
                           <span className="text-red-500 text-xs">
@@ -183,14 +183,18 @@ export const SecurityInformation = ({
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    variant="primary"
+                  >
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
                         <Loader2Icon className="h-4 w-4 animate-spin" />
                         Saving...
                       </span>
                     ) : (
-                      "Save Changes"
+                      'Save Changes'
                     )}
                   </Button>
                 </div>

@@ -39,14 +39,17 @@ export const UserDropdown = () => {
                 width={54}
                 height={54}
               />
-              <AvatarFallback className="">{fullName.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="uppercase font-semibold">
+                {current?.fname.charAt(0)}
+                {current?.lname.charAt(0)}
+              </AvatarFallback>
             </Avatar>
-            <p className="font-semibold">{fullName}</p>
+            {/* <p className="font-semibold uppercase">{fullName}</p> */}
             <ChevronDown className="w-5 h-5" />
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>My account</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer">
             Settings

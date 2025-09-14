@@ -147,13 +147,15 @@ export const LoginCard = ({
             </div>
 
             <Button
-              className="w-full"
+              className="w-full border-amber-900"
               type="submit"
-              size="lg"
               disabled={pending}
+              variant="primary"
             >
               Log In
             </Button>
+
+            {/* <CustomButton /> */}
 
             <Separator />
 

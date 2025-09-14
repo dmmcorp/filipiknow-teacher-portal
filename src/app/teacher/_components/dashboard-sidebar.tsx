@@ -55,17 +55,17 @@ export const Sidebar = () => {
 
   if (isLoading) {
     return (
-      <div className="w-64 bg-white border-r border-gray-200 flex items-center justify-center">
-        <Loader2Icon className="h-6 w-6 animate-spin text-orange-500" />
+      <div className="w-64 bg-background border-r border-orange-700/20 flex items-center justify-center">
+        <Loader2Icon className="h-6 w-6 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-64 bg-background border-r border-orange-700/20 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-orange-500">FlipKnow</h1>
+      <div className="p-6 border-b border-orange-700/20">
+        <h1 className="text-xl font-bold text-white">FlipKnow</h1>
       </div>
 
       {/* Navigation */}
@@ -79,8 +79,8 @@ export const Sidebar = () => {
                   className={cn(
                     'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? 'bg-gray-100 text-gray-900 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-white/20 text-white font-medium'
+                      : 'text-orange-100 hover:bg-white/10 hover:text-white'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -94,8 +94,8 @@ export const Sidebar = () => {
                   className={cn(
                     'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? 'bg-gray-100 text-gray-900 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-white/20 text-white font-medium'
+                      : 'text-orange-100 hover:bg-white/10 hover:text-white'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -123,15 +123,15 @@ export const Sidebar = () => {
                       className={cn(
                         'block px-3 py-2 rounded-lg text-sm transition-colors',
                         pathname === `/teacher/sections/${section._id}`
-                          ? 'bg-gray-100 text-gray-900 font-medium'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          ? 'bg-white/20 text-white font-medium'
+                          : 'text-orange-100 hover:bg-white/10 hover:text-white'
                       )}
                     >
                       {section.name}
                     </Link>
                   ))}
                   {!userSections?.length && (
-                    <p className="text-sm text-gray-500 px-3 py-2">
+                    <p className="text-sm text-orange-200 px-3 py-2">
                       No sections assigned
                     </p>
                   )}

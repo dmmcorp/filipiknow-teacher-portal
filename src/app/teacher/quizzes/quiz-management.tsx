@@ -50,7 +50,6 @@ import {
   Loader2Icon,
   MessageSquare,
   MoreHorizontal,
-  Plus,
   Puzzle,
   Search,
   Trash2,
@@ -378,8 +377,8 @@ export default function QuizManagement() {
         </div>
         <Button
           onClick={() => (window.location.href = '/teacher/quizzes/create')}
+          variant="primary"
         >
-          <Plus className="mr-2 h-4 w-4" />
           Create New Quiz
         </Button>
       </div>

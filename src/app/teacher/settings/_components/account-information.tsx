@@ -286,6 +286,7 @@ export const AccountInformation = ({
               <div className="flex justify-end mt-8">
                 <Button
                   type="submit"
+                  variant="primary"
                   disabled={
                     isSubmitting || isUploadingImage || isUpdatingProfile
                   }

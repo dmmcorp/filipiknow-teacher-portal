@@ -32,14 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useMutation, useQuery } from 'convex/react';
-import {
-  Edit,
-  MoreHorizontal,
-  Plus,
-  School,
-  Trash2,
-  Users,
-} from 'lucide-react';
+import { Edit, MoreHorizontal, School, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -210,8 +203,8 @@ export const SectionsPanel = () => {
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button onClick={resetForm} variant="primary">
+                {/* <Plus className="mr-2 h-4 w-4" /> */}
                 Create Section
               </Button>
             </DialogTrigger>
