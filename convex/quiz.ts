@@ -40,6 +40,7 @@ export const getLevelsByChapter = query({
     return levels.map((level) => ({
       id: level._id,
       levelNo: level.levelNo,
+      levelType: level.levelType,
     }));
   },
 });
@@ -104,6 +105,12 @@ export const createQuiz = mutation({
         ),
       })
     ),
+    identification: v.optional(
+      v.object({
+        question: v.string(),
+        answer: v.string(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const chapter = await ctx.db.get(args.chapterId);
@@ -124,6 +131,7 @@ export const createQuiz = mutation({
       multipleChoice: args.multipleChoice,
       jigsawPuzzle: args.jigsawPuzzle,
       whoSaidIt: args.whoSaidIt,
+      identification: args.identification,
       instruction: args.instruction,
       time_limit: args.timeLimit,
       points: args.points,
@@ -169,8 +177,8 @@ export const getQuizzes = query({
         if (quiz.multipleChoice) {
           const imageUrl = quiz.multipleChoice.image
             ? await ctx.storage.getUrl(
-                quiz.multipleChoice.image as Id<'_storage'>
-              )
+              quiz.multipleChoice.image as Id<'_storage'>
+            )
             : undefined;
           multipleChoiceWithUrl = {
             ...quiz.multipleChoice,

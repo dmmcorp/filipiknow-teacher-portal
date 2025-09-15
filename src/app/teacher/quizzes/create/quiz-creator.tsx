@@ -27,6 +27,7 @@ import {
   ImageIcon,
   Loader2Icon,
   MessageSquare,
+  PenTool,
   Plus,
   Puzzle,
   Upload,
@@ -38,7 +39,12 @@ import { toast } from 'sonner';
 import { api } from '../../../../../convex/_generated/api';
 import { Id } from '../../../../../convex/_generated/dataModel';
 
-type GameType = '4pics1word' | 'multipleChoice' | 'jigsawPuzzle' | 'whoSaidIt';
+type GameType =
+  | '4pics1word'
+  | 'multipleChoice'
+  | 'jigsawPuzzle'
+  | 'whoSaidIt'
+  | 'identification';
 type Novel = 'Noli me tangere' | 'El Filibusterismo';
 
 interface QuizData {
@@ -81,6 +87,10 @@ interface QuizData {
       isCorrect?: boolean;
     }>;
   };
+  identification?: {
+    question: string;
+    answer: string;
+  };
 }
 
 interface Section {
@@ -112,7 +122,10 @@ export default function QuizCreator() {
     chapter: number;
     title: string;
   } | null>(null);
-  const [levelInfo, setLevelInfo] = useState<{ levelNo: number } | null>(null);
+  const [levelInfo, setLevelInfo] = useState<{
+    levelNo: number;
+    levelType?: 'identification' | 'assessment';
+  } | null>(null);
   const [imagePreviews, setImagePreviews] = useState<{ [key: number]: string }>(
     {}
   );
@@ -139,6 +152,7 @@ export default function QuizCreator() {
     multipleChoice: Grid3X3,
     jigsawPuzzle: Puzzle,
     whoSaidIt: MessageSquare,
+    identification: PenTool,
   };
 
   const gameTypeLabels = {
@@ -146,6 +160,7 @@ export default function QuizCreator() {
     multipleChoice: 'Multiple Choice',
     jigsawPuzzle: 'Jigsaw Puzzle',
     whoSaidIt: 'Who Said It',
+    identification: 'Identification',
   };
 
   const maxKabanata = {
@@ -234,6 +249,7 @@ export default function QuizCreator() {
     if (selectedLevel) {
       setLevelInfo({
         levelNo: selectedLevel.levelNo,
+        levelType: selectedLevel.levelType,
       });
     }
   };
@@ -323,6 +339,12 @@ export default function QuizCreator() {
 
     setIsSubmitting(true);
     try {
+      const isAssessmentLevel = levelInfo?.levelType === 'assessment';
+      const isIdentificationGame = quizData.gameType === 'identification';
+
+      // Only set time limit for assessment levels or non-identification games
+      const shouldHaveTimeLimit = isAssessmentLevel || !isIdentificationGame;
+
       const quizPayload = {
         teacherId: user._id,
         section: quizData.section,
@@ -331,7 +353,7 @@ export default function QuizCreator() {
         levelId: quizData.levelId,
         gameType: quizData.gameType,
         instruction: quizData.instruction,
-        timeLimit: quizData.time_limit,
+        timeLimit: shouldHaveTimeLimit ? quizData.time_limit : 0, // 0 means no time limit
         points: quizData.points,
       };
 
@@ -421,6 +443,27 @@ export default function QuizCreator() {
               image: opt.image,
               isCorrect: opt.isCorrect,
             })),
+          },
+        });
+      } else if (
+        quizData.gameType === 'identification' &&
+        quizData.identification
+      ) {
+        if (!quizData.identification.question) {
+          toast.error('Please enter a question for the identification game');
+          return;
+        }
+        if (!quizData.identification.answer) {
+          toast.error('Please enter an answer for the identification game');
+          return;
+        }
+
+        await createQuiz({
+          ...quizPayload,
+          gameType: 'identification',
+          identification: {
+            question: quizData.identification.question,
+            answer: quizData.identification.answer,
           },
         });
       }
@@ -584,35 +627,6 @@ export default function QuizCreator() {
             onChange={(e) => updateQuizData('instruction', e.target.value)}
             rows={3}
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="time_limit">Time Limit (seconds)</Label>
-            <Input
-              id="time_limit"
-              type="number"
-              placeholder="60"
-              min="30"
-              max="600"
-              value={quizData.time_limit || 60}
-              onChange={(e) =>
-                updateQuizData('time_limit', Number(e.target.value))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="points">Points</Label>
-            <Input
-              id="points"
-              type="number"
-              placeholder="10"
-              min="1"
-              max="100"
-              value={quizData.points || 10}
-              onChange={(e) => updateQuizData('points', Number(e.target.value))}
-            />
-          </div>
         </div>
       </CardContent>
     </Card>
@@ -1310,22 +1324,125 @@ export default function QuizCreator() {
     );
   };
 
-  const renderStep3 = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Quiz Content</CardTitle>
-        <CardDescription>
-          Create content for your {gameTypeLabels[quizData.gameType]} quiz
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {quizData.gameType === '4pics1word' && render4PicsOneWordForm()}
-        {quizData.gameType === 'multipleChoice' && renderMultipleChoiceForm()}
-        {quizData.gameType === 'jigsawPuzzle' && renderJigsawPuzzleForm()}
-        {quizData.gameType === 'whoSaidIt' && renderWhoSaidItForm()}
-      </CardContent>
-    </Card>
-  );
+  const renderIdentificationForm = () => {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="identification-question">Question</Label>
+          <Textarea
+            id="identification-question"
+            placeholder="e.g., Sino ang pangunahing tauhan sa nobela na ito?"
+            value={quizData.identification?.question || ''}
+            onChange={(e) =>
+              updateQuizData('identification', {
+                ...quizData.identification,
+                question: e.target.value,
+              })
+            }
+            rows={3}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="identification-answer">Answer</Label>
+          <Input
+            id="identification-answer"
+            placeholder="e.g., Crisostomo Ibarra"
+            value={quizData.identification?.answer || ''}
+            onChange={(e) =>
+              updateQuizData('identification', {
+                ...quizData.identification,
+                answer: e.target.value,
+              })
+            }
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderStep3 = () => {
+    const isAssessmentLevel = levelInfo?.levelType === 'assessment';
+    const isIdentificationGame = quizData.gameType === 'identification';
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quiz Content</CardTitle>
+            <CardDescription>
+              Create content for your {gameTypeLabels[quizData.gameType]} quiz
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {quizData.gameType === '4pics1word' && render4PicsOneWordForm()}
+            {quizData.gameType === 'multipleChoice' &&
+              renderMultipleChoiceForm()}
+            {quizData.gameType === 'jigsawPuzzle' && renderJigsawPuzzleForm()}
+            {quizData.gameType === 'whoSaidIt' && renderWhoSaidItForm()}
+            {quizData.gameType === 'identification' &&
+              renderIdentificationForm()}
+          </CardContent>
+        </Card>
+
+        {/* Time Limit and Points Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Scoring & Timing</CardTitle>
+            <CardDescription>
+              Set the points and time limit for this quiz
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="points">Points</Label>
+                <Input
+                  id="points"
+                  type="number"
+                  placeholder="10"
+                  min="1"
+                  max="100"
+                  value={quizData.points || 10}
+                  onChange={(e) =>
+                    updateQuizData('points', Number(e.target.value))
+                  }
+                />
+              </div>
+
+              {/* Only show time limit for assessment levels or non-identification games */}
+              {(isAssessmentLevel || !isIdentificationGame) && (
+                <div className="space-y-2">
+                  <Label htmlFor="time_limit">Time Limit (seconds)</Label>
+                  <Input
+                    id="time_limit"
+                    type="number"
+                    placeholder="60"
+                    min="30"
+                    max="600"
+                    value={quizData.time_limit || 60}
+                    onChange={(e) =>
+                      updateQuizData('time_limit', Number(e.target.value))
+                    }
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Show information about time limit rules */}
+            {!isAssessmentLevel && isIdentificationGame && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-700">
+                  <strong>Note:</strong> Identification games in levels 1-9 do
+                  not have time limits. Students can take their time to answer.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
   if (isLoading) return <div>Loading....</div>;
 
@@ -1399,7 +1516,7 @@ export default function QuizCreator() {
           <CardContent>
             <div className="space-y-2 text-sm">
               <div className="flex gap-2">
-                <Badge variant="secondary">{quizData.section}</Badge>
+                {/* <Badge variant="secondary">{quizData.section}</Badge> */}
                 {/* <Badge variant="secondary">{quizData.gradeLevel}</Badge> */}
                 <Badge variant="outline">{quizData.novel}</Badge>
               </div>

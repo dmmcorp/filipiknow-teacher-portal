@@ -56,8 +56,13 @@ const schema = defineSchema({
 
   levels: defineTable({
     chapterId: v.id('chapters'),
-    levelNo: v.number(),
-  }).index('by_chapterId', ['chapterId']),
+    levelNo: v.number(), // 1-10
+    levelType: v.union(
+      v.literal('identification'), // for levels 1-9
+      v.literal('assessment') // for level 10
+    ),
+  }).index('by_chapterId', ['chapterId'])
+    .index('by_chapterId_levelNo', ['chapterId', 'levelNo']),
 
   // dialogues: defineTable({
   //   novel: v.union(
@@ -120,6 +125,8 @@ const schema = defineSchema({
     // kabanata: v.optional(v.number()), // 1–64 for Noli, 1–39 for El Fili
     chapterId: v.optional(v.id('chapters')),
     // level: v.optional(v.number()), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
+
+    assessmentGameNumber: v.optional(v.number()), // 1-10 for assessment games in level 10
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
@@ -182,7 +189,7 @@ const schema = defineSchema({
         ),
       })
     ),
-    time_limit: v.number(),
+    time_limit: v.optional(v.number()),
     instruction: v.string(),
     points: v.number(),
   })
