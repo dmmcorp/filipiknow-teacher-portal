@@ -57,11 +57,14 @@ const schema = defineSchema({
   levels: defineTable({
     chapterId: v.id('chapters'),
     levelNo: v.number(), // 1-10
-    levelType: v.union(
-      v.literal('identification'), // for levels 1-9
-      v.literal('assessment') // for level 10
+    levelType: v.optional(
+      v.union(
+        v.literal('identification'), // for levels 1-9
+        v.literal('assessment') // for level 10
+      )
     ),
-  }).index('by_chapterId', ['chapterId'])
+  })
+    .index('by_chapterId', ['chapterId'])
     .index('by_chapterId_levelNo', ['chapterId', 'levelNo']),
 
   // dialogues: defineTable({
@@ -111,6 +114,7 @@ const schema = defineSchema({
     current_chapter: v.number(), // e.g. kabanata 1
     current_level: v.number(), // e.g. level 2
     completed: v.number(), // e.g. 0, 1, 2, 3, 4, 5
+    total_points: v.optional(v.number()), // e.g. 150
   }).index('by_studentId', ['studentId']),
 
   games: defineTable({

@@ -7,7 +7,7 @@ import { httpAction, internalQuery, query } from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
-  const { novel, chapter } = await request.json();
+  const { novel, chapter, teacherId, sectionId } = await request.json();
   if (!novel || !chapter) {
     return new Response(JSON.stringify({ error: 'Missing query parameters' }), {
       status: 400,
@@ -22,6 +22,8 @@ export const getDialogue = httpAction(async (ctx, request) => {
     const result = await ctx.runQuery(internal.chapters.getChaptersDialogues, {
       novel: novel as NovelType,
       chapterNo: Number(chapter),
+      teacherId: teacherId as Id<'users'>,
+      sectionId: sectionId as Id<'sections'>,
     });
 
     return new Response(JSON.stringify({ success: true, result }), {
@@ -52,6 +54,8 @@ export const getChaptersDialogues = internalQuery({
   args: {
     novel: v.string(),
     chapterNo: v.number(),
+    teacherId: v.id('users'),
+    sectionId: v.id('sections'),
   },
   handler: async (ctx, args) => {
     const chapter = await ctx.db.query('chapters').collect();
@@ -79,10 +83,11 @@ export const getChaptersDialogues = internalQuery({
     );
 
     const levels: LevelGames[] = await ctx.runQuery(
-      internal.levels.getLevelsByChapterId,
+      internal.levels.getGamesByTeacherAndSectionId,
       {
         chapterId: filteredChapter._id,
-        kabanata: args.chapterNo,
+        teacherId: args.teacherId,
+        sectionId: args.sectionId,
       }
     );
     return {

@@ -32,3 +32,33 @@ export const getLevelsByChapterId = internalQuery({
     return filteredLevelGame;
   },
 });
+
+export const getGamesByTeacherAndSectionId = internalQuery({
+  args: {
+    chapterId: v.id('chapters'),
+    teacherId: v.id('users'),
+    sectionId: v.id('sections'),
+  },
+  handler: async (ctx, args) => {
+    const games = await ctx.db
+      .query('games')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('teacherId'), args.teacherId),
+          q.eq(q.field('section'), args.sectionId),
+          q.eq(q.field('chapterId'), args.chapterId)
+        )
+      )
+      .collect();
+
+    const gamesWithLevel = await asyncMap(games, async (game) => {
+      const level = await ctx.db.get(game.levelId);
+      return {
+        ...game,
+        level: level?.levelNo || null,
+      };
+    });
+
+    return gamesWithLevel;
+  },
+});

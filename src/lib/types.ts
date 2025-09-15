@@ -45,8 +45,8 @@ export interface CharacterDialogueType {
   text: string;
 }
 
-export interface LevelGames extends Doc<'levels'> {
-  game: Doc<'games'>;
+export interface LevelGames extends Doc<'games'> {
+  level: number | null;
 }
 
 // //type for getChapterData query in a convex/dialogue.ts

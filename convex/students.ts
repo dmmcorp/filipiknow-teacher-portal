@@ -55,8 +55,15 @@ export const getStudentByUserId = internalQuery({
     if (!student) {
       throw new Error('Student not found for the given user ID.');
     }
+    const teacher = await ctx.db
+      .query('teacher_sections')
+      .withIndex('by_section', (q) => q.eq('sectionId', student.section))
+      .first();
+    if (!teacher) {
+      throw new Error('Teacher not found for the student.');
+    }
 
-    return student;
+    return { ...student, teacher: teacher };
   },
 });
 
