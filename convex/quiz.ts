@@ -45,6 +45,42 @@ export const getLevelsByChapter = query({
   },
 });
 
+export const checkGameExists = query({
+  args: {
+    chapterId: v.id('chapters'),
+    levelNo: v.number(),
+    section: v.id('sections'),
+  },
+  handler: async (ctx, args) => {
+    // First check if level exists
+    const level = await ctx.db
+      .query('levels')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('chapterId'), args.chapterId),
+          q.eq(q.field('levelNo'), args.levelNo)
+        )
+      )
+      .first();
+
+    if (!level) {
+      return false; // Level doesn't exist, so no game exists
+    }
+
+    // Check if game exists for this level and section
+    const existingGame = await ctx.db
+      .query('games')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('levelId'), level._id),
+          q.eq(q.field('section'), args.section)
+        )
+      )
+      .first();
+
+    return !!existingGame;
+  },
+});
 
 export const createQuiz = mutation({
   args: {
@@ -121,6 +157,34 @@ export const createQuiz = mutation({
     const section = await ctx.db.get(args.section);
     if (!section) throw new Error('Section not found');
 
+    // Check if a game already exists for this chapter, level, and section
+    if (args.levelNo) {
+      const existingLevel = await ctx.db
+        .query('levels')
+        .filter((q) =>
+          q.and(
+            q.eq(q.field('chapterId'), args.chapterId),
+            q.eq(q.field('levelNo'), args.levelNo)
+          )
+        )
+        .first();
+
+      if (existingLevel) {
+        const existingGame = await ctx.db
+          .query('games')
+          .filter((q) =>
+            q.and(
+              q.eq(q.field('levelId'), existingLevel._id),
+              q.eq(q.field('section'), args.section)
+            )
+          )
+          .first();
+
+        if (existingGame) {
+          throw new Error(`A game already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+        }
+      }
+    }
 
     let levelId = args.levelId;
     if (!levelId && args.levelNo) {

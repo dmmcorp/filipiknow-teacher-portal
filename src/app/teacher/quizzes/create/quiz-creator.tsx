@@ -154,6 +154,17 @@ export default function QuizCreator() {
     };
   });
 
+  const gameExists = useQuery(
+    api.quiz.checkGameExists,
+    quizData.chapterId && quizData.selectedLevelNo && quizData.section
+      ? {
+          chapterId: quizData.chapterId,
+          levelNo: quizData.selectedLevelNo,
+          section: quizData.section,
+        }
+      : 'skip'
+  );
+
   const gameTypeIcons = {
     '4pics1word': ImageIcon,
     multipleChoice: Grid3X3,
@@ -191,6 +202,30 @@ export default function QuizCreator() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateQuizData = (field: string, value: any) => {
     setQuizData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => {
+    // Reset quiz data to initial state
+    setQuizData({
+      section: undefined,
+      novel: 'Noli me tangere',
+      chapterId: undefined,
+      levelId: undefined,
+      gameType: '4pics1word',
+      instruction: '',
+      time_limit: 60,
+      points: 10,
+    });
+
+    // Reset all other state
+    setCurrentStep(1);
+    setChapterInfo(null);
+    setLevelInfo(null);
+    setImagePreviews({});
+    setSelectedNovel('Noli me tangere');
+
+    // Clean up any existing image preview URLs
+    Object.values(imagePreviews).forEach(URL.revokeObjectURL);
   };
 
   const addImagePlaceholder = (gameType: GameType, index?: number) => {
@@ -347,6 +382,14 @@ export default function QuizCreator() {
       return;
     }
 
+    // Check if game already exists
+    if (gameExists) {
+      toast.error(
+        `A game already exists for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}. Please go to Quiz Management to edit the existing game.`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const isAssessmentLevel = levelInfo?.levelType === 'assessment';
@@ -479,8 +522,16 @@ export default function QuizCreator() {
         });
       }
       toast.success('Quiz created successfully!');
+
+      // Reset form and go back to step 1 for creating another quiz
+      resetForm();
     } catch (error) {
-      toast.error('Failed to create quiz');
+      console.error('Error creating quiz:', error);
+      if (error instanceof Error && error.message.includes('already exists')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to create quiz');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1376,6 +1427,29 @@ export default function QuizCreator() {
 
     return (
       <div className="space-y-6">
+        {/* Show warning if game already exists */}
+        {gameExists && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Game Already Exists
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>
+                    A game already exists for Chapter {chapterInfo?.chapter},
+                    Level {quizData.selectedLevelNo}. Please go to Quiz
+                    Management to edit the existing game or select a different
+                    chapter/level combination.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Quiz Content</CardTitle>
