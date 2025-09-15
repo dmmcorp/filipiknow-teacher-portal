@@ -41,10 +41,10 @@ export const AuthScreen = () => {
         <div className="p-5">
           <div className="mb-[80px] md:mb-0">
             <Image
-              src="/images/logo.svg"
+              src="/assets/logo-transparent.png"
               alt="logo image"
               height={43.53}
-              width={211}
+              width={80}
             />
           </div>
           <RegisterCard setState={setState} />
