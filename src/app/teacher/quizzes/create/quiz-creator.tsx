@@ -52,6 +52,7 @@ interface QuizData {
   novel: Novel;
   levelId: Id<'levels'> | undefined;
   chapterId: Id<'chapters'> | undefined;
+  selectedLevelNo?: number; // The selected level number (1-10)
   // kabanata: number;
   // level: number;
   gameType: GameType;
@@ -142,10 +143,16 @@ export default function QuizCreator() {
     points: 10,
   });
 
-  const levels = useQuery(
-    api.quiz.getLevelsByChapter,
-    quizData.chapterId ? { chapterId: quizData.chapterId } : 'skip'
-  );
+  // Static levels 1-10
+  const staticLevels = Array.from({ length: 10 }, (_, index) => {
+    const levelNo = index + 1;
+    return {
+      id: levelNo.toString(),
+      levelNo,
+      levelType:
+        levelNo <= 9 ? ('identification' as const) : ('assessment' as const),
+    };
+  });
 
   const gameTypeIcons = {
     '4pics1word': ImageIcon,
@@ -244,8 +251,11 @@ export default function QuizCreator() {
   };
 
   const handleLevelSelect = (levelId: string) => {
-    updateQuizData('levelId', levelId);
-    const selectedLevel = levels?.find((l) => l.id === levelId);
+    const levelNo = parseInt(levelId);
+    updateQuizData('levelId', undefined);
+    updateQuizData('selectedLevelNo', levelNo);
+
+    const selectedLevel = staticLevels.find((l) => l.levelNo === levelNo);
     if (selectedLevel) {
       setLevelInfo({
         levelNo: selectedLevel.levelNo,
@@ -331,7 +341,7 @@ export default function QuizCreator() {
       !user?._id ||
       !quizData.section ||
       !quizData.chapterId ||
-      !quizData.levelId
+      !quizData.selectedLevelNo
     ) {
       toast.error('Please fill in all required fields');
       return;
@@ -351,6 +361,7 @@ export default function QuizCreator() {
         novel: quizData.novel,
         chapterId: quizData.chapterId,
         levelId: quizData.levelId,
+        levelNo: quizData.selectedLevelNo,
         gameType: quizData.gameType,
         instruction: quizData.instruction,
         timeLimit: shouldHaveTimeLimit ? quizData.time_limit : 0, // 0 means no time limit
@@ -593,29 +604,27 @@ export default function QuizCreator() {
                   placeholder={
                     !quizData.chapterId
                       ? 'Select a chapter first'
-                      : levels === undefined
-                        ? 'Loading levels...'
-                        : 'Select level'
+                      : 'Select level'
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {levels?.map((level) => (
+                {staticLevels.map((level) => (
                   <SelectItem key={level.id} value={level.id}>
-                    Level {level.levelNo}
+                    Level {level.levelNo} (
+                    {level.levelType === 'identification'
+                      ? 'Identification'
+                      : 'Assessment'}
+                    )
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {!quizData.chapterId ? (
+            {!quizData.chapterId && (
               <p className="text-sm text-muted-foreground">
-                Select a chapter first to view available levels
+                Select a chapter first to continue
               </p>
-            ) : levels?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No levels available for this chapter
-              </p>
-            ) : null}
+            )}
           </div>
         </div>
         <div className="space-y-2">
@@ -1489,7 +1498,7 @@ export default function QuizCreator() {
                   isSubmitting ||
                   !quizData.section ||
                   !quizData.chapterId ||
-                  !quizData.levelId ||
+                  !quizData.selectedLevelNo ||
                   !quizData.instruction
                 }
               >

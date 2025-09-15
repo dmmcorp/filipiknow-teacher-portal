@@ -45,6 +45,7 @@ export const getLevelsByChapter = query({
   },
 });
 
+
 export const createQuiz = mutation({
   args: {
     teacherId: v.id('users'),
@@ -54,7 +55,8 @@ export const createQuiz = mutation({
       v.literal('El Filibusterismo')
     ),
     chapterId: v.id('chapters'),
-    levelId: v.id('levels'),
+    levelId: v.optional(v.id('levels')),
+    levelNo: v.optional(v.number()),
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
@@ -119,13 +121,43 @@ export const createQuiz = mutation({
     const section = await ctx.db.get(args.section);
     if (!section) throw new Error('Section not found');
 
+
+    let levelId = args.levelId;
+    if (!levelId && args.levelNo) {
+      const existingLevel = await ctx.db
+        .query('levels')
+        .filter((q) =>
+          q.and(
+            q.eq(q.field('chapterId'), args.chapterId),
+            q.eq(q.field('levelNo'), args.levelNo)
+          )
+        )
+        .first();
+
+      if (existingLevel) {
+        levelId = existingLevel._id;
+      } else {
+        // Create new level
+        const levelType = args.levelNo <= 9 ? 'identification' : 'assessment';
+        levelId = await ctx.db.insert('levels', {
+          chapterId: args.chapterId,
+          levelNo: args.levelNo,
+          levelType,
+        });
+      }
+    }
+
+    if (!levelId) {
+      throw new Error('Level ID is required');
+    }
+
     const quizId = await ctx.db.insert('games', {
       teacherId: args.teacherId,
       section: args.section,
       gradeLevel: section.gradeLevel,
       novel: args.novel,
       chapterId: args.chapterId,
-      levelId: args.levelId,
+      levelId: levelId,
       gameType: args.gameType,
       fourPicsOneWord: args.fourPicsOneWord,
       multipleChoice: args.multipleChoice,
