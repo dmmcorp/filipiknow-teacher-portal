@@ -50,6 +50,7 @@ export const checkGameExists = query({
     chapterId: v.id('chapters'),
     levelNo: v.number(),
     section: v.id('sections'),
+    assessmentGameNumber: v.optional(v.number()), // for assessment levels (1-10)
   },
   handler: async (ctx, args) => {
     // First check if level exists
@@ -67,7 +68,22 @@ export const checkGameExists = query({
       return false; // Level doesn't exist, so no game exists
     }
 
-    // Check if game exists for this level and section
+    // For assessment levels (level 10), check specific game number
+    if (level.levelType === 'assessment' && args.assessmentGameNumber) {
+      const existingGame = await ctx.db
+        .query('games')
+        .filter((q) =>
+          q.and(
+            q.eq(q.field('levelId'), level._id),
+            q.eq(q.field('section'), args.section),
+            q.eq(q.field('assessmentGameNumber'), args.assessmentGameNumber)
+          )
+        )
+        .first();
+      return !!existingGame;
+    }
+
+    // For identification levels (1-9), check if any game exists
     const existingGame = await ctx.db
       .query('games')
       .filter((q) =>
@@ -82,6 +98,47 @@ export const checkGameExists = query({
   },
 });
 
+export const getExistingAssessmentGames = query({
+  args: {
+    chapterId: v.id('chapters'),
+    levelNo: v.number(),
+    section: v.id('sections'),
+  },
+  handler: async (ctx, args) => {
+    // First check if level exists
+    const level = await ctx.db
+      .query('levels')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('chapterId'), args.chapterId),
+          q.eq(q.field('levelNo'), args.levelNo)
+        )
+      )
+      .first();
+
+    if (!level || level.levelType !== 'assessment') {
+      return [];
+    }
+
+    // Get all existing assessment games for this level and section
+    const existingGames = await ctx.db
+      .query('games')
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('levelId'), level._id),
+          q.eq(q.field('section'), args.section)
+        )
+      )
+      .collect();
+
+    return existingGames.map(game => ({
+      gameNumber: game.assessmentGameNumber || 1,
+      gameType: game.gameType,
+      gameId: game._id,
+    })).sort((a, b) => a.gameNumber - b.gameNumber);
+  },
+});
+
 export const createQuiz = mutation({
   args: {
     teacherId: v.id('users'),
@@ -93,6 +150,7 @@ export const createQuiz = mutation({
     chapterId: v.id('chapters'),
     levelId: v.optional(v.id('levels')),
     levelNo: v.optional(v.number()),
+    assessmentGameNumber: v.optional(v.number()), // 1-10 for assessment levels
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
@@ -170,18 +228,36 @@ export const createQuiz = mutation({
         .first();
 
       if (existingLevel) {
-        const existingGame = await ctx.db
-          .query('games')
-          .filter((q) =>
-            q.and(
-              q.eq(q.field('levelId'), existingLevel._id),
-              q.eq(q.field('section'), args.section)
-            )
-          )
-          .first();
 
-        if (existingGame) {
-          throw new Error(`A game already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+        if (existingLevel.levelType === 'assessment' && args.assessmentGameNumber) {
+          const existingGame = await ctx.db
+            .query('games')
+            .filter((q) =>
+              q.and(
+                q.eq(q.field('levelId'), existingLevel._id),
+                q.eq(q.field('section'), args.section),
+                q.eq(q.field('assessmentGameNumber'), args.assessmentGameNumber)
+              )
+            )
+            .first();
+
+          if (existingGame) {
+            throw new Error(`Assessment game ${args.assessmentGameNumber} already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+          }
+        } else if (existingLevel.levelType === 'identification') {
+          const existingGame = await ctx.db
+            .query('games')
+            .filter((q) =>
+              q.and(
+                q.eq(q.field('levelId'), existingLevel._id),
+                q.eq(q.field('section'), args.section)
+              )
+            )
+            .first();
+
+          if (existingGame) {
+            throw new Error(`A game already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+          }
         }
       }
     }
@@ -222,6 +298,7 @@ export const createQuiz = mutation({
       novel: args.novel,
       chapterId: args.chapterId,
       levelId: levelId,
+      assessmentGameNumber: args.assessmentGameNumber, // Will be undefined for identification games
       gameType: args.gameType,
       fourPicsOneWord: args.fourPicsOneWord,
       multipleChoice: args.multipleChoice,

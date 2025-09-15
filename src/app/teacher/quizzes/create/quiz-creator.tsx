@@ -53,6 +53,7 @@ interface QuizData {
   levelId: Id<'levels'> | undefined;
   chapterId: Id<'chapters'> | undefined;
   selectedLevelNo?: number; // The selected level number (1-10)
+  assessmentGameNumber?: number; // 1-10 for assessment levels only
   // kabanata: number;
   // level: number;
   gameType: GameType;
@@ -161,6 +162,21 @@ export default function QuizCreator() {
           chapterId: quizData.chapterId,
           levelNo: quizData.selectedLevelNo,
           section: quizData.section,
+          assessmentGameNumber: quizData.assessmentGameNumber,
+        }
+      : 'skip'
+  );
+
+  const existingAssessmentGames = useQuery(
+    api.quiz.getExistingAssessmentGames,
+    quizData.chapterId &&
+      quizData.selectedLevelNo &&
+      quizData.section &&
+      levelInfo?.levelType === 'assessment'
+      ? {
+          chapterId: quizData.chapterId,
+          levelNo: quizData.selectedLevelNo,
+          section: quizData.section,
         }
       : 'skip'
   );
@@ -196,6 +212,15 @@ export default function QuizCreator() {
         !quizData.instruction
       ) {
         toast.error('Please fill in all required fields before proceeding');
+        return;
+      }
+
+      // For assessment levels, validate that game number is selected
+      if (
+        levelInfo?.levelType === 'assessment' &&
+        !quizData.assessmentGameNumber
+      ) {
+        toast.error('Please select an assessment game number (1-10)');
         return;
       }
     } else if (currentStep === 2) {
@@ -236,6 +261,7 @@ export default function QuizCreator() {
       novel: 'Noli me tangere',
       chapterId: undefined,
       levelId: undefined,
+      assessmentGameNumber: undefined,
       gameType: '4pics1word',
       instruction: '',
       time_limit: 60,
@@ -340,6 +366,9 @@ export default function QuizCreator() {
         levelType: selectedLevel.levelType,
       });
 
+      // Reset assessment game number when changing levels
+      updateQuizData('assessmentGameNumber', undefined);
+
       const currentGameType = quizData.gameType;
       const availableGameTypes = getAvailableGameTypes(selectedLevel.levelType);
 
@@ -348,7 +377,7 @@ export default function QuizCreator() {
         if (selectedLevel.levelType === 'identification') {
           updateQuizData('gameType', 'identification');
         } else {
-          updateQuizData('gameType', '4pics1word');
+          updateQuizData('gameType', '4pics1word'); // Default for assessment levels
         }
       }
     }
@@ -439,8 +468,13 @@ export default function QuizCreator() {
 
     // Check if game already exists
     if (gameExists) {
+      const gameDescription =
+        levelInfo?.levelType === 'assessment' && quizData.assessmentGameNumber
+          ? `Assessment Game ${quizData.assessmentGameNumber} for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}`
+          : `Game for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}`;
+
       toast.error(
-        `A game already exists for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}. Please go to Quiz Management to edit the existing game.`
+        `${gameDescription} already exists. Please go to Quiz Management to edit the existing game.`
       );
       return;
     }
@@ -460,6 +494,7 @@ export default function QuizCreator() {
         chapterId: quizData.chapterId,
         levelId: quizData.levelId,
         levelNo: quizData.selectedLevelNo,
+        assessmentGameNumber: quizData.assessmentGameNumber, // For assessment levels only
         gameType: quizData.gameType,
         instruction: quizData.instruction,
         timeLimit: shouldHaveTimeLimit ? quizData.time_limit : 0, // 0 means no time limit
@@ -733,6 +768,63 @@ export default function QuizCreator() {
             )}
           </div>
         </div>
+
+        {/* Assessment Game Number Selection - Only show for assessment levels */}
+        {levelInfo?.levelType === 'assessment' && (
+          <div className="space-y-2">
+            <Label htmlFor="assessmentGame">Assessment Game Number</Label>
+            <Select
+              value={quizData.assessmentGameNumber?.toString() || ''}
+              onValueChange={(value) =>
+                updateQuizData('assessmentGameNumber', parseInt(value))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select game number (1-10)" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 10 }, (_, index) => {
+                  const gameNumber = index + 1;
+                  const isExisting = existingAssessmentGames?.some(
+                    (game) => game.gameNumber === gameNumber
+                  );
+                  return (
+                    <SelectItem
+                      key={gameNumber}
+                      value={gameNumber.toString()}
+                      disabled={isExisting}
+                    >
+                      Game {gameNumber} {isExisting ? '(Already Created)' : ''}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {existingAssessmentGames && existingAssessmentGames.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  Existing games:{' '}
+                  {existingAssessmentGames
+                    .map(
+                      (game) =>
+                        `Game ${game.gameNumber} (${gameTypeLabels[game.gameType]})`
+                    )
+                    .join(', ')}
+                </p>
+                <p>
+                  Progress: {existingAssessmentGames.length}/10 games created
+                </p>
+              </div>
+            )}
+            {levelInfo?.levelType === 'assessment' &&
+              !quizData.assessmentGameNumber && (
+                <p className="text-sm text-muted-foreground">
+                  Assessment levels require 10 different games. Select which
+                  game number you want to create.
+                </p>
+              )}
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="instruction">Quiz Instructions</Label>
           <Textarea
@@ -1368,7 +1460,7 @@ export default function QuizCreator() {
           />
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="hint">Hint (Optional)</Label>
           <Input
             id="hint"
@@ -1381,7 +1473,7 @@ export default function QuizCreator() {
               })
             }
           />
-        </div>
+        </div> */}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1540,10 +1632,15 @@ export default function QuizCreator() {
                 </h3>
                 <div className="mt-2 text-sm text-red-700">
                   <p>
-                    A game already exists for Chapter {chapterInfo?.chapter},
-                    Level {quizData.selectedLevelNo}. Please go to Quiz
-                    Management to edit the existing game or select a different
-                    chapter/level combination.
+                    {levelInfo?.levelType === 'assessment' &&
+                    quizData.assessmentGameNumber
+                      ? `Assessment Game ${quizData.assessmentGameNumber} already exists for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}.`
+                      : `A game already exists for Chapter ${chapterInfo?.chapter}, Level ${quizData.selectedLevelNo}.`}{' '}
+                    Please go to Quiz Management to edit the existing game or
+                    select a different
+                    {levelInfo?.levelType === 'assessment'
+                      ? ' assessment game number.'
+                      : ' chapter/level combination.'}
                   </p>
                 </div>
               </div>
@@ -1668,7 +1765,9 @@ export default function QuizCreator() {
                   (!quizData.section ||
                     !quizData.chapterId ||
                     !quizData.selectedLevelNo ||
-                    !quizData.instruction)) ||
+                    !quizData.instruction ||
+                    (levelInfo?.levelType === 'assessment' &&
+                      !quizData.assessmentGameNumber))) ||
                 (currentStep === 2 &&
                   (!levelInfo ||
                     !getAvailableGameTypes(levelInfo?.levelType).includes(
@@ -1724,6 +1823,14 @@ export default function QuizCreator() {
                   ? `${chapterInfo.chapter} (${chapterInfo.title})`
                   : '-'}{' '}
                 | <strong>Level:</strong> {levelInfo ? levelInfo.levelNo : '-'}
+                {levelInfo?.levelType === 'assessment' &&
+                  quizData.assessmentGameNumber && (
+                    <span>
+                      {' '}
+                      | <strong>Assessment Game:</strong>{' '}
+                      {quizData.assessmentGameNumber}/10
+                    </span>
+                  )}
               </p>
               <p>
                 <strong>Game Type:</strong> {gameTypeLabels[quizData.gameType]}

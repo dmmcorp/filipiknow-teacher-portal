@@ -126,7 +126,7 @@ const schema = defineSchema({
     chapterId: v.optional(v.id('chapters')),
     // level: v.optional(v.number()), // 1–8 not sure kung hanggang 8 lang ba talaga or pwede lumagpas, possible itanong pero much better kung last level for each kabanta is hanggang 8 lang
 
-    assessmentGameNumber: v.optional(v.number()), // 1-10 for assessment games in level 10
+    assessmentGameNumber: v.optional(v.number()), // 1-10 for assessment games in level 10 (required for assessment levels)
     gameType: v.union(
       v.literal('4pics1word'),
       v.literal('multipleChoice'),
