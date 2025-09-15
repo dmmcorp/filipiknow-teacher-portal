@@ -187,6 +187,31 @@ export default function QuizCreator() {
   };
 
   const handleStepNext = () => {
+    if (currentStep === 1) {
+      // Validate Step 1 requirements
+      if (
+        !quizData.section ||
+        !quizData.chapterId ||
+        !quizData.selectedLevelNo ||
+        !quizData.instruction
+      ) {
+        toast.error('Please fill in all required fields before proceeding');
+        return;
+      }
+    } else if (currentStep === 2) {
+      // Validate Step 2 requirements
+      if (!levelInfo) {
+        toast.error('Please select a level first');
+        return;
+      }
+
+      const availableGameTypes = getAvailableGameTypes(levelInfo.levelType);
+      if (!availableGameTypes.includes(quizData.gameType)) {
+        toast.error('Please select an appropriate game type for this level');
+        return;
+      }
+    }
+
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
@@ -272,6 +297,24 @@ export default function QuizCreator() {
     }
   };
 
+  const getAvailableGameTypes = (
+    levelType?: 'identification' | 'assessment'
+  ): GameType[] => {
+    if (levelType === 'identification') {
+      return ['identification'];
+    } else if (levelType === 'assessment') {
+      return ['4pics1word', 'multipleChoice', 'jigsawPuzzle', 'whoSaidIt'];
+    }
+
+    return [
+      '4pics1word',
+      'multipleChoice',
+      'jigsawPuzzle',
+      'whoSaidIt',
+      'identification',
+    ];
+  };
+
   const handleChapterSelect = (chapterId: string) => {
     updateQuizData('chapterId', chapterId);
 
@@ -296,6 +339,18 @@ export default function QuizCreator() {
         levelNo: selectedLevel.levelNo,
         levelType: selectedLevel.levelType,
       });
+
+      const currentGameType = quizData.gameType;
+      const availableGameTypes = getAvailableGameTypes(selectedLevel.levelType);
+
+      if (!availableGameTypes.includes(currentGameType)) {
+        // Set default game type based on level type
+        if (selectedLevel.levelType === 'identification') {
+          updateQuizData('gameType', 'identification');
+        } else {
+          updateQuizData('gameType', '4pics1word');
+        }
+      }
     }
   };
 
@@ -692,39 +747,84 @@ export default function QuizCreator() {
     </Card>
   );
 
-  const renderStep2 = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Game Type</CardTitle>
-        <CardDescription>
-          Choose the type of quiz game you want to create
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          {Object.entries(gameTypeLabels).map(([type, label]) => {
-            const Icon = gameTypeIcons[type as GameType];
-            return (
-              <div
-                key={type}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-background/70 ${
-                  quizData.gameType === type
-                    ? 'border-background bg-background/15'
-                    : 'border-gray-200'
-                }`}
-                onClick={() => updateQuizData('gameType', type)}
-              >
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <Icon className="w-8 h-8 text-background" />
-                  <span className="font-medium">{label}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const renderStep2 = () => {
+    const availableGameTypes = getAvailableGameTypes(levelInfo?.levelType);
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Game Type</CardTitle>
+          <CardDescription>
+            Choose the type of quiz game you want to create
+            {levelInfo && (
+              <span className="block mt-2 text-sm">
+                {levelInfo.levelType === 'identification'
+                  ? 'Levels 1-9 support Identification games only'
+                  : 'Level 10 (Assessment) supports multiple game types'}
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!levelInfo && (
+            <div className="p-4 bg-gray-50 rounded-lg text-center">
+              <p className="text-sm text-muted-foreground">
+                Please select a level first to see available game types
+              </p>
+            </div>
+          )}
+
+          {levelInfo && (
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(gameTypeLabels).map(([type, label]) => {
+                const Icon = gameTypeIcons[type as GameType];
+                const isAvailable = availableGameTypes.includes(
+                  type as GameType
+                );
+                const isSelected = quizData.gameType === type;
+
+                return (
+                  <div
+                    key={type}
+                    className={`p-4 border-2 rounded-lg transition-all ${
+                      isAvailable
+                        ? `cursor-pointer hover:border-background/70 ${
+                            isSelected
+                              ? 'border-background bg-background/15'
+                              : 'border-gray-200'
+                          }`
+                        : 'cursor-not-allowed opacity-50 border-gray-100 bg-gray-50'
+                    }`}
+                    onClick={() => {
+                      if (isAvailable) {
+                        updateQuizData('gameType', type);
+                      }
+                    }}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-2">
+                      <Icon
+                        className={`w-8 h-8 ${isAvailable ? 'text-background' : 'text-gray-400'}`}
+                      />
+                      <span
+                        className={`font-medium ${isAvailable ? '' : 'text-gray-400'}`}
+                      >
+                        {label}
+                      </span>
+                      {!isAvailable && (
+                        <span className="text-xs text-gray-400">
+                          Not available for this level
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const render4PicsOneWordForm = () => {
     const handleImageUpload = async (
@@ -1560,7 +1660,22 @@ export default function QuizCreator() {
 
         <div className="flex gap-2">
           {currentStep < 3 ? (
-            <Button onClick={handleStepNext} variant="primary">
+            <Button
+              onClick={handleStepNext}
+              variant="primary"
+              disabled={
+                (currentStep === 1 &&
+                  (!quizData.section ||
+                    !quizData.chapterId ||
+                    !quizData.selectedLevelNo ||
+                    !quizData.instruction)) ||
+                (currentStep === 2 &&
+                  (!levelInfo ||
+                    !getAvailableGameTypes(levelInfo?.levelType).includes(
+                      quizData.gameType
+                    )))
+              }
+            >
               Next
             </Button>
           ) : (
