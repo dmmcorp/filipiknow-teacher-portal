@@ -103,7 +103,7 @@ const schema = defineSchema({
     role: v.optional(v.string()), // e.g. "Protagonist"
     unlocked: v.optional(v.boolean()), // e.g. true or false
     animationImages: v.optional(v.array(v.string())), // e.g. ["https://example.com/maria_clara_1.jpg", "https://example.com/maria_clara_2.jpg"]
-  }),
+  }).index('by_novel', ['novel']),
 
   progress: defineTable({
     studentId: v.id('students'),

@@ -1,4 +1,5 @@
 'use client';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -11,21 +12,34 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { useQuery } from 'convex/react';
-import { BookOpen, Edit, Plus, Search, Users } from 'lucide-react';
+import { BookOpen, Edit, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
-type NovelType = 'Noli me tangere' | 'El filibusterismo';
+import CreateCharacterDialog from './create-character-dialog';
+type NovelType = 'Noli me tangere' | 'El Filibusterismo';
 
 //NOTE: novel title is case sensitive e.g: Noli me tangere is correct while Noli Me Tangere is wrong.
 function AdminDashboard() {
   // const statsOverview = useQuery(api.dialogues.getStatsOverview, {});
   // const chapters = useQuery(api.dialogues.getAllDialogues, {});
-  const characters = useQuery(api.characters.getCharacters, {});
 
   const [selectedNovel, setSelectedNovel] =
     useState<NovelType>('Noli me tangere');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const characters = useQuery(api.characters.getCharacters, {
+    novel: selectedNovel,
+  });
+
+  // Filter characters based on search query (novel filtering is done by backend)
+  const filteredCharacters =
+    characters?.filter((character) => {
+      const matchesSearch =
+        character.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        character.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    }) || [];
 
   // const filterChapters = () => {
   //   if (selectedNovel === 'El filibusterismo') {
@@ -73,7 +87,7 @@ function AdminDashboard() {
               Noli Me Tangere
             </TabsTrigger>
             <TabsTrigger
-              value="El filibusterismo"
+              value="El Filibusterismo"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
               <BookOpen className="w-4 h-4 mr-2" />
@@ -206,21 +220,21 @@ function AdminDashboard() {
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
                     Characters
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({filteredCharacters.length})
+                    </span>
                   </CardTitle>
                   <CardDescription>
-                    Character profiles and dialogue stats
+                    Character profiles for {selectedNovel}
                   </CardDescription>
                 </div>
-                <Button size="sm" variant="outline" className="bg-white/50">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
-                </Button>
+                <CreateCharacterDialog selectedNovel={selectedNovel} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3  max-h-[45vh] overflow-auto">
-                {characters &&
-                  characters.map((character) => (
+                {filteredCharacters.length > 0 ? (
+                  filteredCharacters.map((character) => (
                     <Card
                       key={character._id}
                       className="bg-white/40 border-white/30 hover:bg-white/60 transition-all duration-200 group"
@@ -244,6 +258,11 @@ function AdminDashboard() {
                               <h4 className="font-medium text-gray-900">
                                 {character.name}
                               </h4>
+                              {character.role && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {character.role}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">
                               {character.description}
@@ -262,7 +281,22 @@ function AdminDashboard() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                    <Users className="w-8 h-8 mb-2" />
+                    <p className="font-medium">
+                      {searchQuery
+                        ? 'No characters found'
+                        : 'No characters have been added yet.'}
+                    </p>
+                    <p className="text-sm">
+                      {searchQuery
+                        ? 'Try adjusting your search terms.'
+                        : `Click "Add" to create your first character for ${selectedNovel}.`}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
