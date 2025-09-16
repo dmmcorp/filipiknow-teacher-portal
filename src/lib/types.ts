@@ -18,6 +18,7 @@ export interface SceneTypes {
   | undefined;
   speakerId: Id<'characters'>;
   text: string;
+  position?: 'left' | 'center' | 'right';
 }
 
 export interface ChaptersType {
@@ -43,6 +44,7 @@ export interface CharacterDialogueType {
   scene_bg_image?: string | undefined;
   sceneNumber: number;
   text: string;
+  position?: 'left' | 'center' | 'right';
 }
 
 export interface LevelGames extends Doc<'games'> {

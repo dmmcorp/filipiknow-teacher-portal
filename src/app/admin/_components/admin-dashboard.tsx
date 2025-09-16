@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
+import CreateChapterDialog from './create-chapter-dialog';
 import CreateCharacterDialog from './create-character-dialog';
 import DeleteCharacterDialog from './delete-character-dialog';
 import EditCharacterDialog from './edit-character-dialog';
@@ -44,12 +45,28 @@ function AdminDashboard() {
     novel: selectedNovel,
   });
 
+  const chapters = useQuery(api.chapters.getChapters, {
+    novel: selectedNovel,
+  });
+
   // Filter characters based on search query (novel filtering is done by backend)
   const filteredCharacters =
     characters?.filter((character) => {
       const matchesSearch =
         character.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         character.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    }) || [];
+
+  // Filter chapters based on search query
+  const filteredChapters =
+    chapters?.filter((chapter) => {
+      const matchesSearch =
+        chapter.chapter_title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        chapter.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chapter.chapter.toString().includes(searchQuery);
       return matchesSearch;
     }) || [];
 
@@ -148,15 +165,15 @@ function AdminDashboard() {
                     Manage your novel chapters and content
                   </CardDescription>
                 </div>
-                <Button variant="primary">Add Chapter</Button>
+                <CreateChapterDialog selectedNovel={selectedNovel} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 h-[45vh] max-h-[45vh] overflow-auto">
-                {/* {filteredChapters && filteredChapters.length !== 0 ? (
+                {filteredChapters && filteredChapters.length > 0 ? (
                   filteredChapters.map((chapter) => (
                     <Card
-                      key={chapter.chapter}
+                      key={chapter._id}
                       className="bg-white/40 border-white/30 hover:bg-white/60 transition-all duration-200 group"
                     >
                       <CardContent className="p-4">
@@ -165,23 +182,27 @@ function AdminDashboard() {
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-gray-900">
                                 Chapter {chapter.chapter}:{' '}
-                                {chapter.chapterTitle}
+                                {chapter.chapter_title}
                               </h3>
                             </div>
 
                             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                               <span className="flex items-center gap-1">
-                                <BarChart3 className="w-3 h-3" />
-                                {chapter.levels.toString()} Levels
+                                <Users className="w-3 h-3" />
+                                {chapter.levels.length} Levels
                               </span>
                               <span className="flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" />
-                                {chapter.dialogues} dialogues
+                                <BookOpen className="w-3 h-3" />
+                                {chapter.noOfDialogues} dialogues
                               </span>
                             </div>
+
+                            <p className="text-sm text-muted-foreground truncate">
+                              {chapter.summary}
+                            </p>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Link
                               href={`/admin/${selectedNovel}/${chapter.chapter}`}
                             >
@@ -190,7 +211,7 @@ function AdminDashboard() {
                                 variant="ghost"
                                 className="h-8 w-8 p-0"
                               >
-                                <Eye className="w-3 h-3" />
+                                <BookOpen className="w-3 h-3" />
                               </Button>
                             </Link>
                             <Button
@@ -216,23 +237,17 @@ function AdminDashboard() {
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                     <BookOpen className="w-8 h-8 mb-2" />
                     <p className="font-medium">
-                      No chapters have been added yet.
+                      {searchQuery
+                        ? 'No chapters found'
+                        : 'No chapters have been added yet.'}
                     </p>
                     <p className="text-sm">
-                      Click &quot;Add Chapter&quot; to create your first
-                      chapter.
+                      {searchQuery
+                        ? 'Try adjusting your search terms.'
+                        : 'Click "Add Chapter" to create your first chapter.'}
                     </p>
                   </div>
-                )} */}
-                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                  <BookOpen className="w-8 h-8 mb-2" />
-                  <p className="font-medium">
-                    No chapters have been added yet.
-                  </p>
-                  <p className="text-sm">
-                    Click &quot;Add Chapter&quot; to create your first chapter.
-                  </p>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

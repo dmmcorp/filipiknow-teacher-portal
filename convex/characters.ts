@@ -11,6 +11,11 @@ export const getCharacterData = internalQuery({
         sceneNumber: v.number(), // e.g. 1, 2, 3
         speakerId: v.optional(v.id('characters')),
         text: v.string(),
+        position: v.optional(v.union(
+          v.literal('left'),
+          v.literal('center'),
+          v.literal('right')
+        )), // Character position when speaking
         highlighted_word: v.optional(
           v.object({
             word: v.string(), // e.g. "Maria Clara"
