@@ -12,11 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { useQuery } from 'convex/react';
-import { BookOpen, Edit, Search, Users } from 'lucide-react';
+import { BookOpen, Edit, Search, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 import CreateCharacterDialog from './create-character-dialog';
+import DeleteCharacterDialog from './delete-character-dialog';
+import EditCharacterDialog from './edit-character-dialog';
 type NovelType = 'Noli me tangere' | 'El Filibusterismo';
 
 //NOTE: novel title is case sensitive e.g: Noli me tangere is correct while Noli Me Tangere is wrong.
@@ -27,6 +30,15 @@ function AdminDashboard() {
   const [selectedNovel, setSelectedNovel] =
     useState<NovelType>('Noli me tangere');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Dialog states
+  const [editCharacterId, setEditCharacterId] =
+    useState<Id<'characters'> | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteCharacterId, setDeleteCharacterId] =
+    useState<Id<'characters'> | null>(null);
+  const [deleteCharacterName, setDeleteCharacterName] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const characters = useQuery(api.characters.getCharacters, {
     novel: selectedNovel,
@@ -50,6 +62,21 @@ function AdminDashboard() {
   // };
 
   // const filteredChapters = filterChapters();
+
+  const handleEditCharacter = (characterId: Id<'characters'>) => {
+    setEditCharacterId(characterId);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteCharacter = (
+    characterId: Id<'characters'>,
+    characterName: string
+  ) => {
+    setDeleteCharacterId(characterId);
+    setDeleteCharacterName(characterName);
+    setDeleteDialogOpen(true);
+  };
+
   return (
     <div className="flex-1 container mx-auto py-3 md:py-6 flex flex-col">
       <section className="flex justify-between mb-3">
@@ -269,13 +296,27 @@ function AdminDashboard() {
                             </p>
                           </div>
 
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0"
+                              onClick={() => handleEditCharacter(character._id)}
                             >
                               <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() =>
+                                handleDeleteCharacter(
+                                  character._id,
+                                  character.name
+                                )
+                              }
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
@@ -302,6 +343,21 @@ function AdminDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Character Dialog */}
+      <EditCharacterDialog
+        characterId={editCharacterId}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+
+      {/* Delete Character Dialog */}
+      <DeleteCharacterDialog
+        characterId={deleteCharacterId}
+        characterName={deleteCharacterName}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </div>
   );
 }

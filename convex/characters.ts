@@ -83,9 +83,22 @@ export const getCharacters = query({
 
     const characters = await charactersQuery.collect();
     const result = await asyncMap(characters, async (character) => {
-      const imgUrl = character.image
-        ? await ctx.storage.getUrl(character.image as Id<'_storage'>)
-        : '';
+      let imgUrl = '';
+      if (character.image) {
+        // Check if it's already a URL (starts with http)
+        if (character.image.startsWith('http')) {
+          imgUrl = character.image;
+        } else {
+          // It's a storage ID, get the URL
+          try {
+            const url = await ctx.storage.getUrl(character.image as Id<'_storage'>);
+            imgUrl = url || '';
+          } catch (error) {
+            console.error('Error getting storage URL:', error);
+            imgUrl = '';
+          }
+        }
+      }
       return {
         ...character,
         image: imgUrl,
@@ -118,5 +131,90 @@ export const createCharacter = mutation({
     });
 
     return characterId;
+  },
+});
+
+export const updateCharacter = mutation({
+  args: {
+    characterId: v.id('characters'),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    novel: v.optional(v.union(
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
+    )),
+    image: v.optional(v.string()),
+    role: v.optional(v.string()),
+    unlocked: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { characterId, ...updates } = args;
+
+    // Check if character exists
+    const character = await ctx.db.get(characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    // Filter out undefined values
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+
+    await ctx.db.patch(characterId, filteredUpdates);
+    return characterId;
+  },
+});
+
+export const deleteCharacter = mutation({
+  args: {
+    characterId: v.id('characters'),
+  },
+  handler: async (ctx, args) => {
+    // Check if character exists
+    const character = await ctx.db.get(args.characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    // TODO: Check if character is used in any dialogues/chapters before deleting
+    // For now, we'll allow deletion
+
+    await ctx.db.delete(args.characterId);
+    return { success: true };
+  },
+});
+
+export const getCharacterById = query({
+  args: {
+    characterId: v.id('characters'),
+  },
+  handler: async (ctx, args) => {
+    const character = await ctx.db.get(args.characterId);
+    if (!character) {
+      return null;
+    }
+
+    let imgUrl = '';
+    if (character.image) {
+      // Check if it's already a URL (starts with http)
+      if (character.image.startsWith('http')) {
+        imgUrl = character.image;
+      } else {
+        // It's a storage ID, get the URL
+        try {
+          const url = await ctx.storage.getUrl(character.image as Id<'_storage'>);
+          imgUrl = url || '';
+        } catch (error) {
+          console.error('Error getting storage URL:', error);
+          imgUrl = '';
+        }
+      }
+    }
+
+    return {
+      ...character,
+      image: imgUrl,
+    };
   },
 });
