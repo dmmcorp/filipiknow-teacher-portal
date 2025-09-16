@@ -407,6 +407,167 @@ export const getQuizzes = query({
   },
 });
 
+export const getQuizById = query({
+  args: { quizId: v.id('games') },
+  handler: async (ctx, args) => {
+    const quiz = await ctx.db.get(args.quizId);
+    if (!quiz) throw new Error('Quiz not found');
+
+    const chapter = await ctx.db.get(quiz.chapterId!);
+    const level = await ctx.db.get(quiz.levelId);
+    const section = await ctx.db.get(quiz.section);
+
+    let fourPicsOneWordWithUrls;
+    if (quiz.fourPicsOneWord?.images) {
+      const imageUrls = await Promise.all(
+        quiz.fourPicsOneWord.images.map(async (imageId) =>
+          ctx.storage.getUrl(imageId as Id<'_storage'>)
+        )
+      );
+
+      fourPicsOneWordWithUrls = {
+        ...quiz.fourPicsOneWord,
+        imageUrls,
+      };
+    }
+
+    let multipleChoiceWithUrl;
+    if (quiz.multipleChoice) {
+      const imageUrl = quiz.multipleChoice.image
+        ? await ctx.storage.getUrl(
+          quiz.multipleChoice.image as Id<'_storage'>
+        )
+        : undefined;
+      multipleChoiceWithUrl = {
+        ...quiz.multipleChoice,
+        imageUrl,
+      };
+    }
+
+    let jigsawPuzzleWithUrl;
+    if (quiz.jigsawPuzzle?.image) {
+      const imageUrl = await ctx.storage.getUrl(
+        quiz.jigsawPuzzle.image as Id<'_storage'>
+      );
+      jigsawPuzzleWithUrl = {
+        ...quiz.jigsawPuzzle,
+        imageUrl,
+      };
+    }
+
+    let whoSaidItWithUrls;
+    if (quiz.whoSaidIt?.options) {
+      const optionsWithUrls = await Promise.all(
+        quiz.whoSaidIt.options.map(async (option) => {
+          const imageUrl = option.image
+            ? await ctx.storage.getUrl(option.image as Id<'_storage'>)
+            : undefined;
+          return {
+            ...option,
+            imageUrl,
+          };
+        })
+      );
+      whoSaidItWithUrls = {
+        ...quiz.whoSaidIt,
+        options: optionsWithUrls,
+      };
+    }
+
+    return {
+      ...quiz,
+      kabanata: chapter?.chapter || 0,
+      level: level?.levelNo || 0,
+      chapterTitle: chapter?.chapter_title || '',
+      sectionName: section?.name || '',
+      fourPicsOneWord: fourPicsOneWordWithUrls,
+      multipleChoice: multipleChoiceWithUrl,
+      jigsawPuzzle: jigsawPuzzleWithUrl,
+      whoSaidIt: whoSaidItWithUrls,
+    };
+  },
+});
+
+export const updateQuiz = mutation({
+  args: {
+    quizId: v.id('games'),
+    gameType: v.union(
+      v.literal('4pics1word'),
+      v.literal('multipleChoice'),
+      v.literal('jigsawPuzzle'),
+      v.literal('whoSaidIt'),
+      v.literal('identification')
+    ),
+    instruction: v.string(),
+    timeLimit: v.number(),
+    points: v.number(),
+    fourPicsOneWord: v.optional(
+      v.object({
+        images: v.array(v.string()),
+        clue: v.string(),
+        answer: v.string(),
+      })
+    ),
+    multipleChoice: v.optional(
+      v.object({
+        question: v.string(),
+        image: v.optional(v.string()),
+        options: v.array(
+          v.object({
+            text: v.string(),
+            isCorrect: v.boolean(),
+          })
+        ),
+      })
+    ),
+    jigsawPuzzle: v.optional(
+      v.object({
+        image: v.string(),
+        rows: v.number(),
+        columns: v.number(),
+      })
+    ),
+    whoSaidIt: v.optional(
+      v.object({
+        question: v.string(),
+        quote: v.string(),
+        hint: v.optional(v.string()),
+        options: v.array(
+          v.object({
+            name: v.string(),
+            image: v.optional(v.string()),
+            isCorrect: v.optional(v.boolean()),
+          })
+        ),
+      })
+    ),
+    identification: v.optional(
+      v.object({
+        question: v.string(),
+        answer: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existingQuiz = await ctx.db.get(args.quizId);
+    if (!existingQuiz) throw new Error('Quiz not found');
+
+    await ctx.db.patch(args.quizId, {
+      gameType: args.gameType,
+      instruction: args.instruction,
+      time_limit: args.timeLimit,
+      points: args.points,
+      fourPicsOneWord: args.fourPicsOneWord,
+      multipleChoice: args.multipleChoice,
+      jigsawPuzzle: args.jigsawPuzzle,
+      whoSaidIt: args.whoSaidIt,
+      identification: args.identification,
+    });
+
+    return args.quizId;
+  },
+});
+
 export const deleteQuiz = mutation({
   args: { id: v.id('games') },
   handler: async (ctx, args) => {

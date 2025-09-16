@@ -11,11 +11,11 @@ export interface SceneTypes {
   };
   sceneNumber: number;
   highlighted_word:
-    | {
-        word: string;
-        definition: string;
-      }
-    | undefined;
+  | {
+    word: string;
+    definition: string;
+  }
+  | undefined;
   speakerId: Id<'characters'>;
   text: string;
 }
@@ -35,11 +35,11 @@ export interface LevelsType {
 export interface CharacterDialogueType {
   speakerId?: Id<'characters'> | undefined;
   highlighted_word?:
-    | {
-        word: string;
-        definition: string;
-      }
-    | undefined;
+  | {
+    word: string;
+    definition: string;
+  }
+  | undefined;
   scene_bg_image?: string | undefined;
   sceneNumber: number;
   text: string;
@@ -48,6 +48,8 @@ export interface CharacterDialogueType {
 export interface LevelGames extends Doc<'games'> {
   level: number | null;
 }
+
+export type GameType = '4pics1word' | 'multipleChoice' | 'jigsawPuzzle' | 'whoSaidIt' | 'identification';
 
 // //type for getChapterData query in a convex/dialogue.ts
 // export interface GetChapterDataType {

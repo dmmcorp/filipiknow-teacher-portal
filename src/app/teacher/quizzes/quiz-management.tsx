@@ -56,6 +56,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
@@ -134,6 +135,7 @@ const gameTypeLabels = {
 };
 
 function QuizManagement() {
+  const router = useRouter();
   const { user } = useCurrentUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGameType, setSelectedGameType] = useState<string>('all');
@@ -182,9 +184,7 @@ function QuizManagement() {
   }, [searchTerm, selectedGameType, selectedNovel, selectedSection, quizzes]);
 
   const handleEdit = (quiz: Quiz) => {
-    // Navigate to edit page or open edit modal
-    // For now, just show a toast
-    toast.success(`Editing quiz for ${quiz.novel} - Kabanata ${quiz.kabanata}`);
+    router.push(`/teacher/quizzes/edit/${quiz._id}`);
   };
 
   const handleDelete = async (quiz: Quiz) => {
