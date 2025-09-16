@@ -50,6 +50,7 @@ import {
   Loader2Icon,
   MessageSquare,
   MoreHorizontal,
+  PenTool,
   Puzzle,
   Search,
   Trash2,
@@ -60,7 +61,12 @@ import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
 
-type GameType = '4pics1word' | 'multipleChoice' | 'jigsawPuzzle' | 'whoSaidIt';
+type GameType =
+  | '4pics1word'
+  | 'multipleChoice'
+  | 'jigsawPuzzle'
+  | 'whoSaidIt'
+  | 'identification';
 type Novel = 'Noli me tangere' | 'El Filibusterismo';
 
 interface Quiz {
@@ -73,6 +79,7 @@ interface Quiz {
   level: number;
   gameType: GameType;
   createdAt: string;
+  assessmentGameNumber?: number; // For assessment levels
   fourPicsOneWord?: {
     imageUrls: string[];
     images: string[];
@@ -104,6 +111,10 @@ interface Quiz {
       isCorrect?: boolean;
     }>;
   };
+  identification?: {
+    question: string;
+    answer: string;
+  };
 }
 
 const gameTypeIcons = {
@@ -111,6 +122,7 @@ const gameTypeIcons = {
   multipleChoice: Grid3X3,
   jigsawPuzzle: Puzzle,
   whoSaidIt: MessageSquare,
+  identification: PenTool,
 };
 
 const gameTypeLabels = {
@@ -118,9 +130,10 @@ const gameTypeLabels = {
   multipleChoice: 'Multiple Choice',
   jigsawPuzzle: 'Jigsaw Puzzle',
   whoSaidIt: 'Who Said It',
+  identification: 'Identification',
 };
 
-export default function QuizManagement() {
+function QuizManagement() {
   const { user } = useCurrentUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGameType, setSelectedGameType] = useState<string>('all');
@@ -360,6 +373,24 @@ export default function QuizManagement() {
           </div>
         );
 
+      case 'identification':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label className="font-medium">Question:</Label>
+              <p className="text-sm text-gray-600 mt-1">
+                {previewQuiz.identification?.question}
+              </p>
+            </div>
+            <div>
+              <Label className="font-medium">Answer:</Label>
+              <p className="text-sm font-medium text-green-600 mt-1">
+                {previewQuiz.identification?.answer}
+              </p>
+            </div>
+          </div>
+        );
+
       default:
         return <p>No preview available for this quiz type.</p>;
     }
@@ -516,7 +547,14 @@ export default function QuizManagement() {
                       <Badge variant="outline">{quiz.novel}</Badge>
                     </TableCell>
                     <TableCell>{quiz.kabanata}</TableCell>
-                    <TableCell>{quiz.level}</TableCell>
+                    <TableCell>
+                      {quiz.level}
+                      {quiz.assessmentGameNumber && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (Game {quiz.assessmentGameNumber})
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{quiz.section}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{quiz.gradeLevel}</Badge>
@@ -577,7 +615,7 @@ export default function QuizManagement() {
             </DialogTitle>
             <DialogDescription>
               {previewQuiz &&
-                `Kabanata ${previewQuiz.kabanata}, Level ${previewQuiz.level} • ${previewQuiz.section} • ${previewQuiz.gradeLevel}`}
+                `Kabanata ${previewQuiz.kabanata}, Level ${previewQuiz.level}${previewQuiz.assessmentGameNumber ? ` (Assessment Game ${previewQuiz.assessmentGameNumber})` : ''} • ${previewQuiz.section} • ${previewQuiz.gradeLevel}`}
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto">
@@ -588,3 +626,5 @@ export default function QuizManagement() {
     </div>
   );
 }
+
+export default QuizManagement;
