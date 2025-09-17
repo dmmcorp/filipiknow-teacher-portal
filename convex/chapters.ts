@@ -137,6 +137,12 @@ export const getChapterById = query({
   handler: async (ctx, args) => {
     const chapter = await ctx.db.get(args.chapterId);
     if (!chapter) throw new Error(`Chapter not found: ${args.chapterId}`);
+
+    // Convert bg_image storage ID to URL
+    const bgImageUrl = chapter.bg_image
+      ? await ctx.storage.getUrl(chapter.bg_image as Id<'_storage'>)
+      : '';
+
     const levels = await ctx.db
       .query('levels')
       .withIndex('by_chapterId', (q) => q.eq('chapterId', args.chapterId))
@@ -150,6 +156,7 @@ export const getChapterById = query({
     const characters = [...new Set(scenes.map((scene) => scene.speakerId))];
     return {
       ...chapter,
+      bg_image: bgImageUrl, // Return the URL instead of storage ID
       levels,
       dialogues: scenes,
       characters,

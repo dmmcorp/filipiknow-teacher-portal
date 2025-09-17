@@ -19,7 +19,9 @@ import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
 import CreateChapterDialog from './create-chapter-dialog';
 import CreateCharacterDialog from './create-character-dialog';
+import DeleteChapterDialog from './delete-chapter-dialog';
 import DeleteCharacterDialog from './delete-character-dialog';
+import EditChapterDialog from './edit-chapter-dialog';
 import EditCharacterDialog from './edit-character-dialog';
 type NovelType = 'Noli me tangere' | 'El Filibusterismo';
 
@@ -40,6 +42,18 @@ function AdminDashboard() {
     useState<Id<'characters'> | null>(null);
   const [deleteCharacterName, setDeleteCharacterName] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Chapter dialog states
+  const [editChapterId, setEditChapterId] = useState<Id<'chapters'> | null>(
+    null
+  );
+  const [editChapterDialogOpen, setEditChapterDialogOpen] = useState(false);
+  const [deleteChapterId, setDeleteChapterId] = useState<Id<'chapters'> | null>(
+    null
+  );
+  const [deleteChapterTitle, setDeleteChapterTitle] = useState('');
+  const [deleteChapterNumber, setDeleteChapterNumber] = useState(0);
+  const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
 
   const characters = useQuery(api.characters.getCharacters, {
     novel: selectedNovel,
@@ -92,6 +106,22 @@ function AdminDashboard() {
     setDeleteCharacterId(characterId);
     setDeleteCharacterName(characterName);
     setDeleteDialogOpen(true);
+  };
+
+  const handleEditChapter = (chapterId: Id<'chapters'>) => {
+    setEditChapterId(chapterId);
+    setEditChapterDialogOpen(true);
+  };
+
+  const handleDeleteChapter = (
+    chapterId: Id<'chapters'>,
+    chapterTitle: string,
+    chapterNumber: number
+  ) => {
+    setDeleteChapterId(chapterId);
+    setDeleteChapterTitle(chapterTitle);
+    setDeleteChapterNumber(chapterNumber);
+    setDeleteChapterDialogOpen(true);
   };
 
   return (
@@ -203,7 +233,7 @@ function AdminDashboard() {
                           </div>
 
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link
+                            {/* <Link
                               href={`/admin/${selectedNovel}/${chapter.chapter}`}
                             >
                               <Button
@@ -213,11 +243,12 @@ function AdminDashboard() {
                               >
                                 <BookOpen className="w-3 h-3" />
                               </Button>
-                            </Link>
+                            </Link> */}
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0"
+                              onClick={() => handleEditChapter(chapter._id)}
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -225,6 +256,13 @@ function AdminDashboard() {
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() =>
+                                handleDeleteChapter(
+                                  chapter._id,
+                                  chapter.chapter_title,
+                                  chapter.chapter
+                                )
+                              }
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -372,6 +410,22 @@ function AdminDashboard() {
         characterName={deleteCharacterName}
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
+      />
+
+      {/* Edit Chapter Dialog */}
+      <EditChapterDialog
+        chapterId={editChapterId}
+        open={editChapterDialogOpen}
+        onOpenChange={setEditChapterDialogOpen}
+      />
+
+      {/* Delete Chapter Dialog */}
+      <DeleteChapterDialog
+        chapterId={deleteChapterId}
+        chapterTitle={deleteChapterTitle}
+        chapterNumber={deleteChapterNumber}
+        open={deleteChapterDialogOpen}
+        onOpenChange={setDeleteChapterDialogOpen}
       />
     </div>
   );
