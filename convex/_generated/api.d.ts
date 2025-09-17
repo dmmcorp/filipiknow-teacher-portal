@@ -23,6 +23,7 @@ import type * as levels from "../levels.js";
 import type * as progress from "../progress.js";
 import type * as quiz from "../quiz.js";
 import type * as sections from "../sections.js";
+import type * as student_scores from "../student_scores.js";
 import type * as students from "../students.js";
 import type * as users from "../users.js";
 
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   progress: typeof progress;
   quiz: typeof quiz;
   sections: typeof sections;
+  student_scores: typeof student_scores;
   students: typeof students;
   users: typeof users;
 }>;
