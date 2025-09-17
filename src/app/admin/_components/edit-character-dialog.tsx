@@ -21,6 +21,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useMutation, useQuery } from 'convex/react';
 import { Loader2, Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
@@ -123,6 +124,7 @@ export default function EditCharacterDialog({
 
     setIsUpdating(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {
         characterId,
         name: name.trim(),
@@ -253,9 +255,11 @@ export default function EditCharacterDialog({
             <Label>Character Image (Optional)</Label>
             {imagePreview ? (
               <div className="relative">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Character preview"
+                  width={500}
+                  height={192}
                   className="w-full h-48 object-cover rounded-lg border"
                 />
                 <Button

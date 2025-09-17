@@ -22,6 +22,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useMutation, useQuery } from 'convex/react';
 import { Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
@@ -136,6 +137,7 @@ export default function CreateChapterDialog({
   const updateDialogue = (
     index: number,
     field: keyof DialogueScene,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value: any
   ) => {
     const updatedDialogues = [...dialogues];
@@ -298,9 +300,11 @@ export default function CreateChapterDialog({
             <Label>Chapter Background Image</Label>
             {backgroundImagePreview ? (
               <div className="relative">
-                <img
+                <Image
                   src={backgroundImagePreview}
                   alt="Background preview"
+                  width={800}
+                  height={192}
                   className="w-full h-48 object-cover rounded-lg border"
                 />
                 <Button

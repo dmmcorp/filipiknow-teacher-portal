@@ -8,6 +8,59 @@ import { toast } from 'sonner';
 import { api } from '../../../../../convex/_generated/api';
 import { Id } from '../../../../../convex/_generated/dataModel';
 
+// Define proper types for game data
+interface FourPicsOneWordData {
+  images: string[];
+  imageUrls?: string[];
+  clue: string;
+  answer: string;
+}
+
+interface MultipleChoiceOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+interface MultipleChoiceData {
+  question: string;
+  image?: string;
+  imageUrl?: string;
+  options: MultipleChoiceOption[];
+}
+
+interface JigsawPuzzleData {
+  image: string;
+  imageUrl?: string;
+  rows: number;
+  columns: number;
+}
+
+interface WhoSaidItOption {
+  name: string;
+  image?: string;
+  imageUrl?: string;
+  isCorrect?: boolean;
+}
+
+interface WhoSaidItData {
+  question: string;
+  quote: string;
+  hint?: string;
+  options: WhoSaidItOption[];
+}
+
+interface IdentificationData {
+  question: string;
+  answer: string;
+}
+
+type GameData =
+  | FourPicsOneWordData
+  | MultipleChoiceData
+  | JigsawPuzzleData
+  | WhoSaidItData
+  | IdentificationData;
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +74,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface QuizEditorProps {
   quizId: Id<'games'>;
@@ -44,7 +98,7 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   const [instruction, setInstruction] = useState('');
   const [timeLimit, setTimeLimit] = useState(0);
   const [points, setPoints] = useState(10);
-  const [gameData, setGameData] = useState<any>(null);
+  const [gameData, setGameData] = useState<GameData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState<string[]>([]);
 
@@ -61,19 +115,29 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
 
     switch (quiz.gameType) {
       case '4pics1word':
-        setGameData(quiz.fourPicsOneWord);
+        if (quiz.fourPicsOneWord) {
+          setGameData(quiz.fourPicsOneWord as FourPicsOneWordData);
+        }
         break;
       case 'multipleChoice':
-        setGameData(quiz.multipleChoice);
+        if (quiz.multipleChoice) {
+          setGameData(quiz.multipleChoice as MultipleChoiceData);
+        }
         break;
       case 'jigsawPuzzle':
-        setGameData(quiz.jigsawPuzzle);
+        if (quiz.jigsawPuzzle) {
+          setGameData(quiz.jigsawPuzzle as JigsawPuzzleData);
+        }
         break;
       case 'whoSaidIt':
-        setGameData(quiz.whoSaidIt);
+        if (quiz.whoSaidIt) {
+          setGameData(quiz.whoSaidIt as WhoSaidItData);
+        }
         break;
       case 'identification':
-        setGameData(quiz.identification);
+        if (quiz.identification) {
+          setGameData(quiz.identification as IdentificationData);
+        }
         break;
     }
   }
@@ -120,7 +184,22 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
 
     setIsLoading(true);
     try {
-      const updateData: any = {
+      interface UpdateData {
+        quizId: Id<'games'>;
+        gameType: GameType;
+        instruction: string;
+        timeLimit: number;
+        points: number;
+        fourPicsOneWord?: Omit<FourPicsOneWordData, 'imageUrls'>;
+        multipleChoice?: Omit<MultipleChoiceData, 'imageUrl'>;
+        jigsawPuzzle?: Omit<JigsawPuzzleData, 'imageUrl'>;
+        whoSaidIt?: Omit<WhoSaidItData, 'options'> & {
+          options: Omit<WhoSaidItOption, 'imageUrl'>[];
+        };
+        identification?: IdentificationData;
+      }
+
+      const updateData: UpdateData = {
         quizId,
         gameType,
         instruction,
@@ -130,29 +209,36 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
 
       switch (gameType) {
         case '4pics1word':
-          const { imageUrls, ...fourPicsData } = gameData;
-          updateData.fourPicsOneWord = fourPicsData;
+          const fourPicsData = gameData as FourPicsOneWordData;
+          const { imageUrls, ...fourPicsDataWithoutUrls } = fourPicsData;
+          updateData.fourPicsOneWord = fourPicsDataWithoutUrls;
           break;
         case 'multipleChoice':
-          const { imageUrl, ...multipleChoiceData } = gameData;
-          updateData.multipleChoice = multipleChoiceData;
+          const multipleChoiceData = gameData as MultipleChoiceData;
+          const { imageUrl, ...multipleChoiceDataWithoutUrl } =
+            multipleChoiceData;
+          updateData.multipleChoice = multipleChoiceDataWithoutUrl;
           break;
         case 'jigsawPuzzle':
-          const { imageUrl: jigsawImageUrl, ...jigsawData } = gameData;
-          updateData.jigsawPuzzle = jigsawData;
+          const jigsawData = gameData as JigsawPuzzleData;
+          const { imageUrl: jigsawImageUrl, ...jigsawDataWithoutUrl } =
+            jigsawData;
+          updateData.jigsawPuzzle = jigsawDataWithoutUrl;
           break;
         case 'whoSaidIt':
+          const whoSaidItGameData = gameData as WhoSaidItData;
           const whoSaidItData = {
-            ...gameData,
-            options: gameData.options?.map((option: any) => {
-              const { imageUrl, ...optionData } = option;
-              return optionData;
-            }),
+            ...whoSaidItGameData,
+            options:
+              whoSaidItGameData.options?.map((option: WhoSaidItOption) => {
+                const { imageUrl, ...optionData } = option;
+                return optionData;
+              }) || [],
           };
           updateData.whoSaidIt = whoSaidItData;
           break;
         case 'identification':
-          updateData.identification = gameData;
+          updateData.identification = gameData as IdentificationData;
           break;
       }
 
@@ -168,7 +254,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   };
 
   const render4PicsOneWordForm = () => {
-    const data = gameData || { images: [], clue: '', answer: '' };
+    const data = (gameData as FourPicsOneWordData) || {
+      images: [],
+      clue: '',
+      answer: '',
+    };
 
     const handle4PicsImageUpload = async (file: File, index: number) => {
       const imageId = `4pics-${index}`;
@@ -204,9 +294,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
               >
                 {data.images[index] ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={data.imageUrls?.[index] || ''}
                       alt={`Image ${index + 1}`}
+                      width={256}
+                      height={128}
                       className="w-full h-32 object-cover rounded"
                     />
                     <Button
@@ -267,7 +359,7 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   };
 
   const renderMultipleChoiceForm = () => {
-    const data = gameData || {
+    const data = (gameData as MultipleChoiceData) || {
       question: '',
       options: [{ text: '', isCorrect: false }],
       image: '',
@@ -282,12 +374,16 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
 
     const removeOption = (index: number) => {
       const newOptions = data.options.filter(
-        (_: any, i: number) => i !== index
+        (_: MultipleChoiceOption, i: number) => i !== index
       );
       setGameData({ ...data, options: newOptions });
     };
 
-    const updateOption = (index: number, field: string, value: any) => {
+    const updateOption = (
+      index: number,
+      field: keyof MultipleChoiceOption,
+      value: string | boolean
+    ) => {
       const newOptions = [...data.options];
       if (field === 'isCorrect' && value) {
         // Only one option can be correct
@@ -329,9 +425,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
           <Label>Image (Optional)</Label>
           {data.image ? (
             <div className="relative inline-block mt-2">
-              <img
+              <Image
                 src={data.imageUrl || ''}
                 alt="Question"
+                width={128}
+                height={128}
                 className="w-32 h-32 object-cover rounded"
               />
               <Button
@@ -381,7 +479,7 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
             </Button>
           </div>
           <div className="space-y-2 mt-2">
-            {data.options.map((option: any, index: number) => (
+            {data.options.map((option: MultipleChoiceOption, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={option.text}
@@ -418,7 +516,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   };
 
   const renderJigsawPuzzleForm = () => {
-    const data = gameData || { image: '', rows: 3, columns: 3 };
+    const data = (gameData as JigsawPuzzleData) || {
+      image: '',
+      rows: 3,
+      columns: 3,
+    };
 
     const handleJigsawImageUpload = async (file: File) => {
       setUploadingImages((prev) => [...prev, 'jigsaw-image']);
@@ -440,9 +542,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
           <Label>Puzzle Image</Label>
           {data.image ? (
             <div className="relative inline-block mt-2">
-              <img
+              <Image
                 src={data.imageUrl || ''}
                 alt="Puzzle"
+                width={192}
+                height={192}
                 className="w-48 h-48 object-cover rounded"
               />
               <Button
@@ -511,7 +615,7 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   };
 
   const renderWhoSaidItForm = () => {
-    const data = gameData || {
+    const data = (gameData as WhoSaidItData) || {
       question: '',
       quote: '',
       hint: '',
@@ -527,12 +631,16 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
 
     const removeOption = (index: number) => {
       const newOptions = data.options.filter(
-        (_: any, i: number) => i !== index
+        (_: WhoSaidItOption, i: number) => i !== index
       );
       setGameData({ ...data, options: newOptions });
     };
 
-    const updateOption = (index: number, field: string, value: any) => {
+    const updateOption = (
+      index: number,
+      field: keyof WhoSaidItOption,
+      value: string | boolean
+    ) => {
       const newOptions = [...data.options];
       if (field === 'isCorrect' && value) {
         // Only one option can be correct
@@ -605,7 +713,7 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
             </Button>
           </div>
           <div className="space-y-4 mt-2">
-            {data.options.map((option: any, index: number) => (
+            {data.options.map((option: WhoSaidItOption, index: number) => (
               <div key={index} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Input
@@ -642,9 +750,11 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
                   <Label className="text-sm">Character Image</Label>
                   {option.image ? (
                     <div className="relative inline-block mt-2">
-                      <img
+                      <Image
                         src={option.imageUrl || ''}
                         alt={option.name}
+                        width={96}
+                        height={96}
                         className="w-24 h-24 object-cover rounded"
                       />
                       <Button
@@ -688,7 +798,10 @@ export default function QuizEditor({ quizId }: QuizEditorProps) {
   };
 
   const renderIdentificationForm = () => {
-    const data = gameData || { question: '', answer: '' };
+    const data = (gameData as IdentificationData) || {
+      question: '',
+      answer: '',
+    };
 
     return (
       <div className="space-y-4">
