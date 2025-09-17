@@ -1,4 +1,5 @@
 'use client';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -11,21 +12,77 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { useQuery } from 'convex/react';
-import { BookOpen, Edit, Plus, Search, Users } from 'lucide-react';
+import { BookOpen, Edit, Search, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
-type NovelType = 'Noli me tangere' | 'El filibusterismo';
+import { Id } from '../../../../convex/_generated/dataModel';
+import CreateChapterDialog from './create-chapter-dialog';
+import CreateCharacterDialog from './create-character-dialog';
+import DeleteChapterDialog from './delete-chapter-dialog';
+import DeleteCharacterDialog from './delete-character-dialog';
+import EditChapterDialog from './edit-chapter-dialog';
+import EditCharacterDialog from './edit-character-dialog';
+type NovelType = 'Noli me tangere' | 'El Filibusterismo';
 
 //NOTE: novel title is case sensitive e.g: Noli me tangere is correct while Noli Me Tangere is wrong.
 function AdminDashboard() {
   // const statsOverview = useQuery(api.dialogues.getStatsOverview, {});
   // const chapters = useQuery(api.dialogues.getAllDialogues, {});
-  const characters = useQuery(api.characters.getCharacters, {});
 
   const [selectedNovel, setSelectedNovel] =
     useState<NovelType>('Noli me tangere');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Dialog states
+  const [editCharacterId, setEditCharacterId] =
+    useState<Id<'characters'> | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteCharacterId, setDeleteCharacterId] =
+    useState<Id<'characters'> | null>(null);
+  const [deleteCharacterName, setDeleteCharacterName] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Chapter dialog states
+  const [editChapterId, setEditChapterId] = useState<Id<'chapters'> | null>(
+    null
+  );
+  const [editChapterDialogOpen, setEditChapterDialogOpen] = useState(false);
+  const [deleteChapterId, setDeleteChapterId] = useState<Id<'chapters'> | null>(
+    null
+  );
+  const [deleteChapterTitle, setDeleteChapterTitle] = useState('');
+  const [deleteChapterNumber, setDeleteChapterNumber] = useState(0);
+  const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
+
+  const characters = useQuery(api.characters.getCharacters, {
+    novel: selectedNovel,
+  });
+
+  const chapters = useQuery(api.chapters.getChapters, {
+    novel: selectedNovel,
+  });
+
+  // Filter characters based on search query (novel filtering is done by backend)
+  const filteredCharacters =
+    characters?.filter((character) => {
+      const matchesSearch =
+        character.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        character.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    }) || [];
+
+  // Filter chapters based on search query
+  const filteredChapters =
+    chapters?.filter((chapter) => {
+      const matchesSearch =
+        chapter.chapter_title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        chapter.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chapter.chapter.toString().includes(searchQuery);
+      return matchesSearch;
+    }) || [];
 
   // const filterChapters = () => {
   //   if (selectedNovel === 'El filibusterismo') {
@@ -36,6 +93,37 @@ function AdminDashboard() {
   // };
 
   // const filteredChapters = filterChapters();
+
+  const handleEditCharacter = (characterId: Id<'characters'>) => {
+    setEditCharacterId(characterId);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteCharacter = (
+    characterId: Id<'characters'>,
+    characterName: string
+  ) => {
+    setDeleteCharacterId(characterId);
+    setDeleteCharacterName(characterName);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditChapter = (chapterId: Id<'chapters'>) => {
+    setEditChapterId(chapterId);
+    setEditChapterDialogOpen(true);
+  };
+
+  const handleDeleteChapter = (
+    chapterId: Id<'chapters'>,
+    chapterTitle: string,
+    chapterNumber: number
+  ) => {
+    setDeleteChapterId(chapterId);
+    setDeleteChapterTitle(chapterTitle);
+    setDeleteChapterNumber(chapterNumber);
+    setDeleteChapterDialogOpen(true);
+  };
+
   return (
     <div className="flex-1 container mx-auto py-3 md:py-6 flex flex-col">
       <section className="flex justify-between mb-3">
@@ -73,7 +161,7 @@ function AdminDashboard() {
               Noli Me Tangere
             </TabsTrigger>
             <TabsTrigger
-              value="El filibusterismo"
+              value="El Filibusterismo"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
               <BookOpen className="w-4 h-4 mr-2" />
@@ -107,15 +195,15 @@ function AdminDashboard() {
                     Manage your novel chapters and content
                   </CardDescription>
                 </div>
-                <Button variant="primary">Add Chapter</Button>
+                <CreateChapterDialog selectedNovel={selectedNovel} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 h-[45vh] max-h-[45vh] overflow-auto">
-                {/* {filteredChapters && filteredChapters.length !== 0 ? (
+                {filteredChapters && filteredChapters.length > 0 ? (
                   filteredChapters.map((chapter) => (
                     <Card
-                      key={chapter.chapter}
+                      key={chapter._id}
                       className="bg-white/40 border-white/30 hover:bg-white/60 transition-all duration-200 group"
                     >
                       <CardContent className="p-4">
@@ -124,24 +212,28 @@ function AdminDashboard() {
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-gray-900">
                                 Chapter {chapter.chapter}:{' '}
-                                {chapter.chapterTitle}
+                                {chapter.chapter_title}
                               </h3>
                             </div>
 
                             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                               <span className="flex items-center gap-1">
-                                <BarChart3 className="w-3 h-3" />
-                                {chapter.levels.toString()} Levels
+                                <Users className="w-3 h-3" />
+                                {chapter.levels.length} Levels
                               </span>
                               <span className="flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" />
-                                {chapter.dialogues} dialogues
+                                <BookOpen className="w-3 h-3" />
+                                {chapter.noOfDialogues} dialogues
                               </span>
                             </div>
+
+                            <p className="text-sm text-muted-foreground truncate">
+                              {chapter.summary}
+                            </p>
                           </div>
 
-                          <div className="flex items-center gap-1">
-                            <Link
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* <Link
                               href={`/admin/${selectedNovel}/${chapter.chapter}`}
                             >
                               <Button
@@ -149,13 +241,14 @@ function AdminDashboard() {
                                 variant="ghost"
                                 className="h-8 w-8 p-0"
                               >
-                                <Eye className="w-3 h-3" />
+                                <BookOpen className="w-3 h-3" />
                               </Button>
-                            </Link>
+                            </Link> */}
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0"
+                              onClick={() => handleEditChapter(chapter._id)}
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -163,6 +256,13 @@ function AdminDashboard() {
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() =>
+                                handleDeleteChapter(
+                                  chapter._id,
+                                  chapter.chapter_title,
+                                  chapter.chapter
+                                )
+                              }
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -175,23 +275,17 @@ function AdminDashboard() {
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                     <BookOpen className="w-8 h-8 mb-2" />
                     <p className="font-medium">
-                      No chapters have been added yet.
+                      {searchQuery
+                        ? 'No chapters found'
+                        : 'No chapters have been added yet.'}
                     </p>
                     <p className="text-sm">
-                      Click &quot;Add Chapter&quot; to create your first
-                      chapter.
+                      {searchQuery
+                        ? 'Try adjusting your search terms.'
+                        : 'Click "Add Chapter" to create your first chapter.'}
                     </p>
                   </div>
-                )} */}
-                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                  <BookOpen className="w-8 h-8 mb-2" />
-                  <p className="font-medium">
-                    No chapters have been added yet.
-                  </p>
-                  <p className="text-sm">
-                    Click &quot;Add Chapter&quot; to create your first chapter.
-                  </p>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -206,21 +300,21 @@ function AdminDashboard() {
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
                     Characters
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({filteredCharacters.length})
+                    </span>
                   </CardTitle>
                   <CardDescription>
-                    Character profiles and dialogue stats
+                    Character profiles for {selectedNovel}
                   </CardDescription>
                 </div>
-                <Button size="sm" variant="outline" className="bg-white/50">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
-                </Button>
+                <CreateCharacterDialog selectedNovel={selectedNovel} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3  max-h-[45vh] overflow-auto">
-                {characters &&
-                  characters.map((character) => (
+                {filteredCharacters.length > 0 ? (
+                  filteredCharacters.map((character) => (
                     <Card
                       key={character._id}
                       className="bg-white/40 border-white/30 hover:bg-white/60 transition-all duration-200 group"
@@ -244,30 +338,95 @@ function AdminDashboard() {
                               <h4 className="font-medium text-gray-900">
                                 {character.name}
                               </h4>
+                              {character.role && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {character.role}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground truncate">
                               {character.description}
                             </p>
                           </div>
 
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0"
+                              onClick={() => handleEditCharacter(character._id)}
                             >
                               <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() =>
+                                handleDeleteCharacter(
+                                  character._id,
+                                  character.name
+                                )
+                              }
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                    <Users className="w-8 h-8 mb-2" />
+                    <p className="font-medium">
+                      {searchQuery
+                        ? 'No characters found'
+                        : 'No characters have been added yet.'}
+                    </p>
+                    <p className="text-sm">
+                      {searchQuery
+                        ? 'Try adjusting your search terms.'
+                        : `Click "Add" to create your first character for ${selectedNovel}.`}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Edit Character Dialog */}
+      <EditCharacterDialog
+        characterId={editCharacterId}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+
+      {/* Delete Character Dialog */}
+      <DeleteCharacterDialog
+        characterId={deleteCharacterId}
+        characterName={deleteCharacterName}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
+
+      {/* Edit Chapter Dialog */}
+      <EditChapterDialog
+        chapterId={editChapterId}
+        open={editChapterDialogOpen}
+        onOpenChange={setEditChapterDialogOpen}
+      />
+
+      {/* Delete Chapter Dialog */}
+      <DeleteChapterDialog
+        chapterId={deleteChapterId}
+        chapterTitle={deleteChapterTitle}
+        chapterNumber={deleteChapterNumber}
+        open={deleteChapterDialogOpen}
+        onOpenChange={setDeleteChapterDialogOpen}
+      />
     </div>
   );
 }

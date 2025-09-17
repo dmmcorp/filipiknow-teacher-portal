@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { LevelGames, NovelType, SceneTypes } from '../src/lib/types';
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
-import { httpAction, internalQuery, query } from './_generated/server';
+import { httpAction, internalQuery, mutation, query } from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
@@ -137,6 +137,12 @@ export const getChapterById = query({
   handler: async (ctx, args) => {
     const chapter = await ctx.db.get(args.chapterId);
     if (!chapter) throw new Error(`Chapter not found: ${args.chapterId}`);
+
+    // Convert bg_image storage ID to URL
+    const bgImageUrl = chapter.bg_image
+      ? await ctx.storage.getUrl(chapter.bg_image as Id<'_storage'>)
+      : '';
+
     const levels = await ctx.db
       .query('levels')
       .withIndex('by_chapterId', (q) => q.eq('chapterId', args.chapterId))
@@ -150,9 +156,166 @@ export const getChapterById = query({
     const characters = [...new Set(scenes.map((scene) => scene.speakerId))];
     return {
       ...chapter,
+      bg_image: bgImageUrl, // Return the URL instead of storage ID
       levels,
       dialogues: scenes,
       characters,
     };
+  },
+});
+
+export const createChapter = mutation({
+  args: {
+    novel: v.union(
+      v.literal('Noli me tangere'),
+      v.literal('El Filibusterismo')
+    ),
+    chapter: v.number(),
+    chapter_title: v.string(),
+    dialogues: v.array(
+      v.object({
+        sceneNumber: v.number(),
+        speakerId: v.optional(v.id('characters')),
+        text: v.string(),
+        position: v.optional(v.union(
+          v.literal('left'),
+          v.literal('center'),
+          v.literal('right')
+        )),
+        highlighted_word: v.optional(
+          v.object({
+            word: v.string(),
+            definition: v.string(),
+          })
+        ),
+        scene_bg_image: v.optional(v.string()),
+      })
+    ),
+    bg_image: v.optional(v.string()),
+    summary: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if chapter already exists
+    const existingChapter = await ctx.db
+      .query('chapters')
+      .withIndex('by_novel', (q) => q.eq('novel', args.novel))
+      .filter((q) => q.eq(q.field('chapter'), args.chapter))
+      .first();
+
+    if (existingChapter) {
+      throw new Error(`Chapter ${args.chapter} already exists for ${args.novel}`);
+    }
+
+    // Validate that all speakerIds exist if provided
+    for (const dialogue of args.dialogues) {
+      if (dialogue.speakerId) {
+        const character = await ctx.db.get(dialogue.speakerId);
+        if (!character) {
+          throw new Error(`Character with ID ${dialogue.speakerId} not found`);
+        }
+        // Verify the character belongs to the same novel
+        if (character.novel !== args.novel) {
+          throw new Error(`Character ${character.name} does not belong to ${args.novel}`);
+        }
+      }
+    }
+
+    const chapterId = await ctx.db.insert('chapters', {
+      novel: args.novel,
+      chapter: args.chapter,
+      chapter_title: args.chapter_title,
+      dialogues: args.dialogues,
+      bg_image: args.bg_image,
+      summary: args.summary,
+    });
+
+    return chapterId;
+  },
+});
+
+export const updateChapter = mutation({
+  args: {
+    chapterId: v.id('chapters'),
+    chapter: v.optional(v.number()),
+    chapter_title: v.optional(v.string()),
+    dialogues: v.optional(v.array(
+      v.object({
+        sceneNumber: v.number(),
+        speakerId: v.optional(v.id('characters')),
+        text: v.string(),
+        position: v.optional(v.union(
+          v.literal('left'),
+          v.literal('center'),
+          v.literal('right')
+        )),
+        highlighted_word: v.optional(
+          v.object({
+            word: v.string(),
+            definition: v.string(),
+          })
+        ),
+        scene_bg_image: v.optional(v.string()),
+      })
+    )),
+    bg_image: v.optional(v.string()),
+    summary: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { chapterId, ...updates } = args;
+
+    // Check if chapter exists
+    const chapter = await ctx.db.get(chapterId);
+    if (!chapter) {
+      throw new Error('Chapter not found');
+    }
+
+    // If updating dialogues, validate speaker IDs
+    if (updates.dialogues) {
+      for (const dialogue of updates.dialogues) {
+        if (dialogue.speakerId) {
+          const character = await ctx.db.get(dialogue.speakerId);
+          if (!character) {
+            throw new Error(`Character with ID ${dialogue.speakerId} not found`);
+          }
+          if (character.novel !== chapter.novel) {
+            throw new Error(`Character ${character.name} does not belong to ${chapter.novel}`);
+          }
+        }
+      }
+    }
+
+    // Filter out undefined values
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+
+    await ctx.db.patch(chapterId, filteredUpdates);
+    return chapterId;
+  },
+});
+
+export const deleteChapter = mutation({
+  args: {
+    chapterId: v.id('chapters'),
+  },
+  handler: async (ctx, args) => {
+    // Check if chapter exists
+    const chapter = await ctx.db.get(args.chapterId);
+    if (!chapter) {
+      throw new Error('Chapter not found');
+    }
+
+    // Check if there are any levels associated with this chapter
+    const levels = await ctx.db
+      .query('levels')
+      .withIndex('by_chapterId', (q) => q.eq('chapterId', args.chapterId))
+      .collect();
+
+    if (levels.length > 0) {
+      throw new Error('Cannot delete chapter with existing levels. Delete all levels first.');
+    }
+
+    await ctx.db.delete(args.chapterId);
+    return { success: true };
   },
 });
