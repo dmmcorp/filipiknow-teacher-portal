@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
+import { cn } from '@/lib/utils';
 import {
-  ChevronDown,
-  Home,
   BookOpen,
+  ChevronDown,
   FileQuestion,
+  Home,
   Settings,
-} from "lucide-react";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 export const Sidebar = () => {
   const [isClassOpen, setIsClassOpen] = useState(false);
@@ -19,28 +19,28 @@ export const Sidebar = () => {
   const menuItems = [
     {
       icon: Home,
-      label: "Dashboard",
-      href: "/teacher",
-      active: pathname === "/teacher",
+      label: 'Dashboard',
+      href: '/teacher',
+      active: pathname === '/teacher',
     },
     {
       icon: BookOpen,
-      label: "Class",
+      label: 'Class',
       hasDropdown: true,
       isOpen: isClassOpen,
       onClick: () => setIsClassOpen(!isClassOpen),
     },
     {
       icon: FileQuestion,
-      label: "Quiz",
-      href: "/teacher/quizzes",
-      active: pathname === "/teacher/quizzes",
+      label: 'Quiz',
+      href: '/teacher/quizzes',
+      active: pathname === '/teacher/quizzes',
     },
     {
       icon: Settings,
-      label: "Settings",
-      href: "/teacher/settings",
-      active: pathname === "/teacher/settings",
+      label: 'Settings',
+      href: '/teacher/settings',
+      active: pathname === '/teacher/settings',
     },
   ];
 
@@ -48,7 +48,7 @@ export const Sidebar = () => {
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-orange-500">FlipKnow</h1>
+        <h1 className="text-xl font-bold text-orange-500">FilipiKnow</h1>
       </div>
 
       {/* Navigation */}
@@ -60,10 +60,10 @@ export const Sidebar = () => {
                 <Link
                   href={item.href}
                   className={cn(
-                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? "bg-gray-100 text-gray-900 font-medium"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? 'bg-gray-100 text-gray-900 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -75,10 +75,10 @@ export const Sidebar = () => {
                 <button
                   onClick={item.onClick}
                   className={cn(
-                    "cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors",
+                    'cursor-pointer w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors',
                     item.active
-                      ? "bg-gray-100 text-gray-900 font-medium"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? 'bg-gray-100 text-gray-900 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -88,8 +88,8 @@ export const Sidebar = () => {
                   {item.hasDropdown && (
                     <ChevronDown
                       className={cn(
-                        "w-4 h-4 transition-transform",
-                        item.isOpen && "rotate-180"
+                        'w-4 h-4 transition-transform',
+                        item.isOpen && 'rotate-180'
                       )}
                     />
                   )}

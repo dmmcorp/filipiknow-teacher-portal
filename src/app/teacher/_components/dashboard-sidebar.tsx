@@ -65,7 +65,7 @@ export const Sidebar = () => {
     <div className="w-64 bg-background border-r border-orange-700/20 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-orange-700/20">
-        <h1 className="text-xl font-bold text-white">FlipKnow</h1>
+        <h1 className="text-xl font-bold text-white">FilipiKnow</h1>
       </div>
 
       {/* Navigation */}
