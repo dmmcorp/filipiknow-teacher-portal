@@ -66,6 +66,22 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="p-6 border-b border-orange-700/20">
         <h1 className="text-xl font-bold text-white">FilipiKnow</h1>
+        {/* <div className="mb-[80px] md:mb-0">
+          <Image
+            src="/assets/logo-white-bg.png"
+            alt="logo image"
+            height={43.53}
+            width={80}
+          />
+        </div> */}
+        {/* <div className="mb-[80px] md:mb-0">
+          <Image
+            src="/assets/logo-white-bg.png"
+            alt="logo image"
+            height={43.53}
+            width={240}
+          />
+        </div> */}
       </div>
 
       {/* Navigation */}
