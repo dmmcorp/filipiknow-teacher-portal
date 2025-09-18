@@ -6,6 +6,7 @@ import { httpAction } from './_generated/server';
 import { auth } from './auth';
 import { getDialogue } from './chapters';
 import { httpAllSections } from './sections';
+import { recordStudentScore } from './student_scores';
 import { getStudentInfoAndProgress } from './students';
 import { createAccount } from './users';
 
@@ -210,5 +211,11 @@ http.route({
   path: '/getChapterDialogues',
   method: 'POST',
   handler: getDialogue,
+});
+
+http.route({
+  path: '/recordStudentScore',
+  method: 'POST',
+  handler: recordStudentScore,
 });
 export default http;

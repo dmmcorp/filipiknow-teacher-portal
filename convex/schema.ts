@@ -212,7 +212,7 @@ const schema = defineSchema({
     score: v.number(),
     time_spent: v.number(),
     progressId: v.id('progress'),
-  }),
+  }).index('by_progressId', ['progressId']),
 
   sections: defineTable({
     name: v.string(), // e.g. "Section 1"
