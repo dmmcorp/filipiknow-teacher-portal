@@ -34,7 +34,7 @@ import {
 import { useMutation, useQuery } from 'convex/react';
 import { Edit, MoreHorizontal, School, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
@@ -97,6 +97,12 @@ export const SectionsPanel = () => {
     schoolYear: '',
     teacherId: '',
   });
+
+  useEffect(() => {
+    return () => {
+      cleanupBodyStyles();
+    };
+  }, [isCreateDialogOpen, isEditDialogOpen]);
 
   const createSection = async (data: SectionFormData) => {
     try {
@@ -185,6 +191,12 @@ export const SectionsPanel = () => {
     await deleteSection(section._id);
   };
 
+  const cleanupBodyStyles = () => {
+    document.body.style.removeProperty('pointer-events');
+    document.body.classList.remove('data-scroll-locked');
+    document.body.removeAttribute('data-scroll-locked');
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -200,10 +212,16 @@ export const SectionsPanel = () => {
         <div className="flex gap-3">
           <Dialog
             open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
+            onOpenChange={(open) => {
+              setIsCreateDialogOpen(open);
+              if (!open) {
+                resetForm();
+                cleanupBodyStyles();
+              }
+            }}
           >
             <DialogTrigger asChild>
-              <Button onClick={resetForm} variant="primary">
+              <Button variant="primary">
                 {/* <Plus className="mr-2 h-4 w-4" /> */}
                 Create Section
               </Button>
@@ -343,7 +361,17 @@ export const SectionsPanel = () => {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingSection(null);
+            resetForm();
+            cleanupBodyStyles();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px] bg-white">
           <DialogHeader>
             <DialogTitle>Edit Section</DialogTitle>
