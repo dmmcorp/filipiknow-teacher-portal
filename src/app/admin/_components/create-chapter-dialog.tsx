@@ -44,6 +44,7 @@ interface DialogueScene {
     definition: string;
   };
   scene_bg_image?: string;
+  scene_bg_image_preview?: string;
 }
 
 export default function CreateChapterDialog({
@@ -75,6 +76,53 @@ export default function CreateChapterDialog({
     novel: selectedNovel,
   });
 
+  const handleSceneBackgroundUpload = async (
+    file: File,
+    sceneIndex: number
+  ) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+
+      // Update the specific scene's background image
+      const updatedDialogues = [...dialogues];
+      updatedDialogues[sceneIndex] = {
+        ...updatedDialogues[sceneIndex],
+        scene_bg_image: storageId,
+        scene_bg_image_preview: previewUrl,
+      };
+      setDialogues(updatedDialogues);
+
+      toast.success('Scene background image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload background image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeSceneBackground = (sceneIndex: number) => {
+    const updatedDialogues = [...dialogues];
+    delete updatedDialogues[sceneIndex].scene_bg_image;
+    delete updatedDialogues[sceneIndex].scene_bg_image_preview;
+    setDialogues(updatedDialogues);
+  };
+
   const handleBackgroundImageUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
@@ -91,13 +139,13 @@ export default function CreateChapterDialog({
       });
       const { storageId } = await result.json();
 
-      setBackgroundImage(storageId);
-
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
+
+      setBackgroundImage(storageId);
       setBackgroundImagePreview(previewUrl);
 
-      toast.success('Background image uploaded successfully');
+      toast.success('Chapter background image uploaded successfully');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload background image');
@@ -501,6 +549,70 @@ export default function CreateChapterDialog({
                       Add Highlighted Word
                     </Button>
                   )}
+
+                  {/* Scene Background Image Section */}
+                  <div className="space-y-2 border-t pt-3">
+                    <Label className="text-sm">Scene Background Image</Label>
+                    {dialogue.scene_bg_image_preview ? (
+                      <div className="relative">
+                        <Image
+                          src={dialogue.scene_bg_image_preview}
+                          alt={`Scene ${dialogue.sceneNumber} background`}
+                          width={400}
+                          height={100}
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                          onClick={() => removeSceneBackground(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-3">
+                        <div className="text-center">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file)
+                                handleSceneBackgroundUpload(file, index);
+                            }}
+                            className="hidden"
+                            id={`scene-bg-${index}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              document
+                                .getElementById(`scene-bg-${index}`)
+                                ?.click()
+                            }
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-3 w-3" />
+                                Upload Scene Background
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
