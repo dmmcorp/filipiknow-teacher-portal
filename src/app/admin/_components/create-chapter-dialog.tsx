@@ -51,6 +51,7 @@ export default function CreateChapterDialog({
   selectedNovel,
 }: CreateChapterDialogProps) {
   const [open, setOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0); // 0 = chapter info, 1+ = scenes
   const [chapter, setChapter] = useState('');
   const [chapterTitle, setChapterTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -174,11 +175,19 @@ export default function CreateChapterDialog({
         position: 'left',
       },
     ]);
+    // Navigate to the new scene
+    setCurrentStep(dialogues.length + 1);
   };
 
   const removeDialogue = (index: number) => {
     if (dialogues.length > 1) {
       setDialogues(dialogues.filter((_, i) => i !== index));
+      // Navigate to previous step if we deleted the current scene
+      if (currentStep === index + 1) {
+        setCurrentStep(Math.max(0, currentStep - 1));
+      } else if (currentStep > index + 1) {
+        setCurrentStep(currentStep - 1);
+      }
     }
   };
 
@@ -274,6 +283,7 @@ export default function CreateChapterDialog({
     setSummary('');
     setBackgroundImage('');
     setBackgroundImagePreview('');
+    setCurrentStep(0);
     setDialogues([
       {
         sceneNumber: 1,
@@ -287,6 +297,31 @@ export default function CreateChapterDialog({
     }
   };
 
+  const handleNext = () => {
+    // Validate current step before proceeding
+    if (currentStep === 0) {
+      if (!chapter.trim() || !chapterTitle.trim() || !summary.trim()) {
+        toast.error('Please fill in all chapter information');
+        return;
+      }
+    } else {
+      const sceneIndex = currentStep - 1;
+      if (!dialogues[sceneIndex]?.text.trim()) {
+        toast.error('Please fill in the dialogue text');
+        return;
+      }
+    }
+    setCurrentStep(currentStep + 1);
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(Math.max(0, currentStep - 1));
+  };
+
+  const totalSteps = dialogues.length + 1; // +1 for chapter info step
+  const currentSceneIndex = currentStep - 1;
+  const currentDialogue = currentStep > 0 ? dialogues[currentSceneIndex] : null;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -297,351 +332,419 @@ export default function CreateChapterDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto bg-white z-50">
         <DialogHeader>
-          <DialogTitle>Create New Chapter</DialogTitle>
+          <DialogTitle>
+            Create New Chapter - Step {currentStep + 1} of {totalSteps}
+          </DialogTitle>
           <DialogDescription>
-            Add a new chapter with dialogues for {selectedNovel}.
+            {currentStep === 0
+              ? `Enter chapter information for ${selectedNovel}`
+              : `Configure Scene ${currentSceneIndex + 1} of ${dialogues.length}`}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Chapter Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="chapter">Chapter Number *</Label>
-              <Input
-                id="chapter"
-                type="number"
-                min="1"
-                value={chapter}
-                onChange={(e) => setChapter(e.target.value)}
-                placeholder="1"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="title">Chapter Title *</Label>
-              <Input
-                id="title"
-                value={chapterTitle}
-                onChange={(e) => setChapterTitle(e.target.value)}
-                placeholder="Ang Piging"
-                required
-              />
-            </div>
+        {/* Progress Indicator */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Progress</span>
+            <span>
+              {currentStep + 1} / {totalSteps}
+            </span>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="summary">Summary *</Label>
-            <Textarea
-              id="summary"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="Enter chapter summary..."
-              rows={3}
-              required
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
             />
           </div>
+        </div>
 
-          {/* Background Image */}
-          <div className="space-y-2">
-            <Label>Chapter Background Image</Label>
-            {backgroundImagePreview ? (
-              <div className="relative">
-                <Image
-                  src={backgroundImagePreview}
-                  alt="Background preview"
-                  width={800}
-                  height={192}
-                  className="w-full h-48 object-cover rounded-lg border"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={removeBackgroundImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Step 0: Chapter Information */}
+          {currentStep === 0 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="chapter">Chapter Number *</Label>
+                  <Input
+                    id="chapter"
+                    type="number"
+                    min="1"
+                    value={chapter}
+                    onChange={(e) => setChapter(e.target.value)}
+                    placeholder="1"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="title">Chapter Title *</Label>
+                  <Input
+                    id="title"
+                    value={chapterTitle}
+                    onChange={(e) => setChapterTitle(e.target.value)}
+                    placeholder="Ang Piging"
+                    required
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <div className="text-center">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                  <div className="mt-2">
-                    <Input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleBackgroundImageUpload(file);
-                      }}
-                      className="hidden"
+
+              <div className="space-y-2">
+                <Label htmlFor="summary">Summary *</Label>
+                <Textarea
+                  id="summary"
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  placeholder="Enter chapter summary..."
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Chapter Background Image (Optional)</Label>
+                {backgroundImagePreview ? (
+                  <div className="relative">
+                    <Image
+                      src={backgroundImagePreview}
+                      alt="Background preview"
+                      width={800}
+                      height={192}
+                      className="w-full h-48 object-cover rounded-lg border"
                     />
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
+                      className="absolute top-2 right-2"
+                      onClick={removeBackgroundImage}
                     >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload Background
-                        </>
-                      )}
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="text-center">
+                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                      <div className="mt-2">
+                        <Input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleBackgroundImageUpload(file);
+                          }}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Background
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 1+: Scene Configuration */}
+          {currentStep > 0 && currentDialogue && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold">
+                  Scene {currentDialogue.sceneNumber}
+                </h3>
+                {dialogues.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      toast.warning(
+                        `Delete Scene ${currentDialogue.sceneNumber}?`,
+                        {
+                          action: {
+                            label: 'Delete',
+                            onClick: () => removeDialogue(currentSceneIndex),
+                          },
+                          cancel: {
+                            label: 'Cancel',
+                            onClick: () => {},
+                          },
+                        }
+                      );
+                    }}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Scene
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Speaker</Label>
+                  <Select
+                    value={currentDialogue.speakerId}
+                    onValueChange={(value) =>
+                      updateDialogue(currentSceneIndex, 'speakerId', value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select character..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="narrator">
+                        No Speaker (Narrator)
+                      </SelectItem>
+                      {characters?.map((character) => (
+                        <SelectItem key={character._id} value={character._id}>
+                          {character.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Character Position</Label>
+                  <Select
+                    value={currentDialogue.position}
+                    onValueChange={(value) =>
+                      updateDialogue(currentSceneIndex, 'position', value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="center">Center</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Dialogues Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Dialogues *</Label>
-              <Button
-                type="button"
-                onClick={addDialogue}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Dialogue
-              </Button>
-            </div>
+              <div className="space-y-2">
+                <Label>Dialogue Text *</Label>
+                <Textarea
+                  value={currentDialogue.text}
+                  onChange={(e) =>
+                    updateDialogue(currentSceneIndex, 'text', e.target.value)
+                  }
+                  placeholder="Enter dialogue text..."
+                  rows={4}
+                  required
+                />
+              </div>
 
-            <div className="space-y-4 max-h-60 overflow-y-auto">
-              {dialogues.map((dialogue, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">
-                      Scene {dialogue.sceneNumber}
-                    </span>
-                    {dialogues.length > 1 && (
+              {/* Highlighted Word Section */}
+              <div className="space-y-2 border-t pt-3">
+                <Label className="text-sm font-semibold">
+                  Highlighted Word (Optional)
+                </Label>
+                {currentDialogue.highlighted_word ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Only one highlighted word allowed per chapter
+                      </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeDialogue(index)}
+                        onClick={() => removeHighlightedWord(currentSceneIndex)}
                         className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <X className="w-3 h-3 mr-1" />
+                        Remove
                       </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Speaker</Label>
-                      <Select
-                        value={dialogue.speakerId}
-                        onValueChange={(value) =>
-                          updateDialogue(index, 'speakerId', value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select character..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="narrator">
-                            No Speaker (Narrator)
-                          </SelectItem>
-                          {characters?.map((character) => (
-                            <SelectItem
-                              key={character._id}
-                              value={character._id}
-                            >
-                              {character.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Position</Label>
-                      <Select
-                        value={dialogue.position}
-                        onValueChange={(value) =>
-                          updateDialogue(index, 'position', value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dialogue Text *</Label>
-                    <Textarea
-                      value={dialogue.text}
-                      onChange={(e) =>
-                        updateDialogue(index, 'text', e.target.value)
-                      }
-                      placeholder="Enter dialogue text..."
-                      rows={2}
-                      required
-                    />
-                  </div>
-
-                  {/* Highlighted Word Section */}
-                  {dialogue.highlighted_word ? (
-                    <div className="space-y-2 border-t pt-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Highlighted Word</Label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeHighlightedWord(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          placeholder="Word to highlight"
-                          value={dialogue.highlighted_word.word}
-                          onChange={(e) =>
-                            updateDialogue(index, 'highlighted_word', {
-                              ...dialogue.highlighted_word!,
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Word to highlight"
+                        value={currentDialogue.highlighted_word.word}
+                        onChange={(e) =>
+                          updateDialogue(
+                            currentSceneIndex,
+                            'highlighted_word',
+                            {
+                              ...currentDialogue.highlighted_word!,
                               word: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          placeholder="Definition"
-                          value={dialogue.highlighted_word.definition}
-                          onChange={(e) =>
-                            updateDialogue(index, 'highlighted_word', {
-                              ...dialogue.highlighted_word!,
+                            }
+                          )
+                        }
+                      />
+                      <Input
+                        placeholder="Definition"
+                        value={currentDialogue.highlighted_word.definition}
+                        onChange={(e) =>
+                          updateDialogue(
+                            currentSceneIndex,
+                            'highlighted_word',
+                            {
+                              ...currentDialogue.highlighted_word!,
                               definition: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
+                            }
+                          )
+                        }
+                      />
                     </div>
-                  ) : (
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addHighlightedWord(currentSceneIndex)}
+                  >
+                    <Plus className="w-3 h-3 mr-2" />
+                    Add Highlighted Word
+                  </Button>
+                )}
+              </div>
+
+              {/* Scene Background Image Section */}
+              <div className="space-y-2 border-t pt-3">
+                <Label className="text-sm font-semibold">
+                  Scene Background Image (Optional)
+                </Label>
+                {currentDialogue.scene_bg_image_preview ? (
+                  <div className="relative">
+                    <Image
+                      src={currentDialogue.scene_bg_image_preview}
+                      alt={`Scene ${currentDialogue.sceneNumber} background`}
+                      width={400}
+                      height={150}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
-                      onClick={() => addHighlightedWord(index)}
+                      className="absolute top-2 right-2"
+                      onClick={() => removeSceneBackground(currentSceneIndex)}
                     >
-                      Add Highlighted Word
+                      <X className="h-4 w-4" />
                     </Button>
-                  )}
-
-                  {/* Scene Background Image Section */}
-                  <div className="space-y-2 border-t pt-3">
-                    <Label className="text-sm">Scene Background Image</Label>
-                    {dialogue.scene_bg_image_preview ? (
-                      <div className="relative">
-                        <Image
-                          src={dialogue.scene_bg_image_preview}
-                          alt={`Scene ${dialogue.sceneNumber} background`}
-                          width={400}
-                          height={100}
-                          className="w-full h-24 object-cover rounded-lg border"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-1 right-1 h-6 w-6 p-0"
-                          onClick={() => removeSceneBackground(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-3">
-                        <div className="text-center">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file)
-                                handleSceneBackgroundUpload(file, index);
-                            }}
-                            className="hidden"
-                            id={`scene-bg-${index}`}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              document
-                                .getElementById(`scene-bg-${index}`)
-                                ?.click()
-                            }
-                            disabled={isUploading}
-                          >
-                            {isUploading ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="mr-2 h-3 w-3" />
-                                Upload Scene Background
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
+                    <div className="text-center">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file)
+                            handleSceneBackgroundUpload(
+                              file,
+                              currentSceneIndex
+                            );
+                        }}
+                        className="hidden"
+                        id={`scene-bg-${currentSceneIndex}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          document
+                            .getElementById(`scene-bg-${currentSceneIndex}`)
+                            ?.click()
+                        }
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Scene Background
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                resetForm();
-                setOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isCreating || !chapter.trim() || !chapterTitle.trim()}
-            >
-              {isCreating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                'Create Chapter'
+          {/* Navigation Buttons */}
+          <DialogFooter className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  resetForm();
+                  setOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            <div className="flex gap-2">
+              {currentStep > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevious}
+                >
+                  Previous
+                </Button>
               )}
-            </Button>
+
+              {currentStep < dialogues.length && (
+                <Button type="button" onClick={handleNext}>
+                  Next
+                </Button>
+              )}
+
+              {currentStep > 0 && currentStep === dialogues.length && (
+                <Button type="button" variant="outline" onClick={addDialogue}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Another Scene
+                </Button>
+              )}
+
+              {currentStep === dialogues.length && (
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Chapter'
+                  )}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
