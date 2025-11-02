@@ -131,11 +131,13 @@ export const getExistingAssessmentGames = query({
       )
       .collect();
 
-    return existingGames.map(game => ({
-      gameNumber: game.assessmentGameNumber || 1,
-      gameType: game.gameType,
-      gameId: game._id,
-    })).sort((a, b) => a.gameNumber - b.gameNumber);
+    return existingGames
+      .map((game) => ({
+        gameNumber: game.assessmentGameNumber || 1,
+        gameType: game.gameType,
+        gameId: game._id,
+      }))
+      .sort((a, b) => a.gameNumber - b.gameNumber);
   },
 });
 
@@ -228,8 +230,10 @@ export const createQuiz = mutation({
         .first();
 
       if (existingLevel) {
-
-        if (existingLevel.levelType === 'assessment' && args.assessmentGameNumber) {
+        if (
+          existingLevel.levelType === 'assessment' &&
+          args.assessmentGameNumber
+        ) {
           const existingGame = await ctx.db
             .query('games')
             .filter((q) =>
@@ -242,7 +246,9 @@ export const createQuiz = mutation({
             .first();
 
           if (existingGame) {
-            throw new Error(`Assessment game ${args.assessmentGameNumber} already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+            throw new Error(
+              `Assessment game ${args.assessmentGameNumber} already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`
+            );
           }
         } else if (existingLevel.levelType === 'identification') {
           const existingGame = await ctx.db
@@ -256,7 +262,9 @@ export const createQuiz = mutation({
             .first();
 
           if (existingGame) {
-            throw new Error(`A game already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`);
+            throw new Error(
+              `A game already exists for Chapter ${chapter.chapter}, Level ${args.levelNo}. Please go to Quiz Management to edit the existing game.`
+            );
           }
         }
       }
@@ -310,6 +318,10 @@ export const createQuiz = mutation({
       points: args.points,
     });
 
+    await ctx.db.patch(chapter._id, {
+      updatedAt: new Date().toISOString(),
+    });
+
     return quizId;
   },
 });
@@ -350,8 +362,8 @@ export const getQuizzes = query({
         if (quiz.multipleChoice) {
           const imageUrl = quiz.multipleChoice.image
             ? await ctx.storage.getUrl(
-              quiz.multipleChoice.image as Id<'_storage'>
-            )
+                quiz.multipleChoice.image as Id<'_storage'>
+              )
             : undefined;
           multipleChoiceWithUrl = {
             ...quiz.multipleChoice,
@@ -434,9 +446,7 @@ export const getQuizById = query({
     let multipleChoiceWithUrl;
     if (quiz.multipleChoice) {
       const imageUrl = quiz.multipleChoice.image
-        ? await ctx.storage.getUrl(
-          quiz.multipleChoice.image as Id<'_storage'>
-        )
+        ? await ctx.storage.getUrl(quiz.multipleChoice.image as Id<'_storage'>)
         : undefined;
       multipleChoiceWithUrl = {
         ...quiz.multipleChoice,
@@ -562,6 +572,10 @@ export const updateQuiz = mutation({
       jigsawPuzzle: args.jigsawPuzzle,
       whoSaidIt: args.whoSaidIt,
       identification: args.identification,
+    });
+
+    await ctx.db.patch(existingQuiz.chapterId!, {
+      updatedAt: new Date().toISOString(),
     });
 
     return args.quizId;

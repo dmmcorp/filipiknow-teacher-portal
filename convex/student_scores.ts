@@ -124,6 +124,7 @@ export const createStudentScoresRecord = internalMutation({
       total_points: (progress.total_points ?? 0) + args.score,
       current_level: nextLevel,
       current_chapter: currentChapter,
+      updatedAt: new Date().toISOString(),
     });
 
     return {
@@ -131,6 +132,7 @@ export const createStudentScoresRecord = internalMutation({
       updatedPoints: (progress.total_points ?? 0) + args.score,
       nextLevel: nextLevel,
       currentChapter: currentChapter,
+      updatedAt: new Date().toISOString(),
     };
   },
 });

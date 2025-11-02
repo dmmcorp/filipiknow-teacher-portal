@@ -71,7 +71,7 @@ export const getStudentByUserId = internalQuery({
 // It is used to get the student details for a specific user.
 export const getStudentInfoAndProgress = httpAction(async (ctx, request) => {
   try {
-    const { userId } = await request.json();
+    const { userId, cachedUpdatedAt } = await request.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
@@ -98,7 +98,30 @@ export const getStudentInfoAndProgress = httpAction(async (ctx, request) => {
 
     const progress = await ctx.runQuery(internal.progress.getProgress, {
       studentId: student._id,
+      cachedUpdatedAt: cachedUpdatedAt,
     });
+    if (!progress) {
+      return new Response(JSON.stringify({ error: 'Progress not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    if (progress?.message === 'No updates available') {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No updates available' }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify({

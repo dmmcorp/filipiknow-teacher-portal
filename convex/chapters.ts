@@ -3,11 +3,17 @@ import { v } from 'convex/values';
 import { LevelGames, NovelType, SceneTypes } from '../src/lib/types';
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
-import { httpAction, internalQuery, mutation, query } from './_generated/server';
+import {
+  httpAction,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
 
 export const getDialogue = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
-  const { novel, chapter, teacherId, sectionId } = await request.json();
+  const { novel, chapter, teacherId, sectionId, cachedUpdatedAt } =
+    await request.json();
   if (!novel || !chapter) {
     return new Response(JSON.stringify({ error: 'Missing query parameters' }), {
       status: 400,
@@ -24,7 +30,17 @@ export const getDialogue = httpAction(async (ctx, request) => {
       chapterNo: Number(chapter),
       teacherId: teacherId as Id<'users'>,
       sectionId: sectionId as Id<'sections'>,
+      cachedUpdatedAt: cachedUpdatedAt as string | undefined,
     });
+
+    if (result.message === 'No updates available') {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No updates available' }),
+        {
+          status: 200,
+        }
+      );
+    }
 
     return new Response(JSON.stringify({ success: true, result }), {
       status: 200,
@@ -35,6 +51,25 @@ export const getDialogue = httpAction(async (ctx, request) => {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    // Detect "chapter not found" errors and return 404
+    if (
+      typeof error.message === 'string' &&
+      error.message.includes('No Chapter found')
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Chapter not found. It may have been deleted.',
+        }),
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
     return new Response(
       JSON.stringify({
         error: error.message || 'Error fetching dialogue.',
@@ -56,6 +91,7 @@ export const getChaptersDialogues = internalQuery({
     chapterNo: v.number(),
     teacherId: v.id('users'),
     sectionId: v.id('sections'),
+    cachedUpdatedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const chapter = await ctx.db.query('chapters').collect();
@@ -70,6 +106,17 @@ export const getChaptersDialogues = internalQuery({
       throw new Error(
         `No Chapter found using ${args.novel} - Chapter: ${args.chapterNo}`
       );
+
+    // Check if cachedUpdatedAt matches the chapter's updatedAt
+    if (args.cachedUpdatedAt && filteredChapter.updatedAt) {
+      if (args.cachedUpdatedAt === filteredChapter.updatedAt) {
+        // If they match, return a special response indicating no update
+        return {
+          success: true,
+          message: 'No updates available',
+        };
+      }
+    }
 
     const bgImgUrl = filteredChapter.bg_image
       ? await ctx.storage.getUrl(filteredChapter.bg_image as Id<'_storage'>)
@@ -177,11 +224,9 @@ export const createChapter = mutation({
         sceneNumber: v.number(),
         speakerId: v.optional(v.id('characters')),
         text: v.string(),
-        position: v.optional(v.union(
-          v.literal('left'),
-          v.literal('center'),
-          v.literal('right')
-        )),
+        position: v.optional(
+          v.union(v.literal('left'), v.literal('center'), v.literal('right'))
+        ),
         highlighted_word: v.optional(
           v.object({
             word: v.string(),
@@ -203,7 +248,9 @@ export const createChapter = mutation({
       .first();
 
     if (existingChapter) {
-      throw new Error(`Chapter ${args.chapter} already exists for ${args.novel}`);
+      throw new Error(
+        `Chapter ${args.chapter} already exists for ${args.novel}`
+      );
     }
 
     // Validate that all speakerIds exist if provided
@@ -215,7 +262,9 @@ export const createChapter = mutation({
         }
         // Verify the character belongs to the same novel
         if (character.novel !== args.novel) {
-          throw new Error(`Character ${character.name} does not belong to ${args.novel}`);
+          throw new Error(
+            `Character ${character.name} does not belong to ${args.novel}`
+          );
         }
       }
     }
@@ -227,6 +276,7 @@ export const createChapter = mutation({
       dialogues: args.dialogues,
       bg_image: args.bg_image,
       summary: args.summary,
+      updatedAt: new Date().toISOString(),
     });
 
     return chapterId;
@@ -238,58 +288,67 @@ export const updateChapter = mutation({
     chapterId: v.id('chapters'),
     chapter: v.optional(v.number()),
     chapter_title: v.optional(v.string()),
-    dialogues: v.optional(v.array(
-      v.object({
-        sceneNumber: v.number(),
-        speakerId: v.optional(v.id('characters')),
-        text: v.string(),
-        position: v.optional(v.union(
-          v.literal('left'),
-          v.literal('center'),
-          v.literal('right')
-        )),
-        highlighted_word: v.optional(
-          v.object({
-            word: v.string(),
-            definition: v.string(),
-          })
-        ),
-        scene_bg_image: v.optional(v.string()),
-      })
-    )),
+    dialogues: v.optional(
+      v.array(
+        v.object({
+          sceneNumber: v.number(),
+          speakerId: v.optional(v.id('characters')),
+          text: v.string(),
+          position: v.optional(
+            v.union(v.literal('left'), v.literal('center'), v.literal('right'))
+          ),
+          highlighted_word: v.optional(
+            v.object({
+              word: v.string(),
+              definition: v.string(),
+            })
+          ),
+          scene_bg_image: v.optional(v.string()),
+        })
+      )
+    ),
     bg_image: v.optional(v.string()),
     summary: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { chapterId, ...updates } = args;
 
-    // Check if chapter exists
+    // --- Check if chapter exists ---
     const chapter = await ctx.db.get(chapterId);
     if (!chapter) {
       throw new Error('Chapter not found');
     }
 
-    // If updating dialogues, validate speaker IDs
+    // --- If updating dialogues, validate speaker IDs ---
     if (updates.dialogues) {
       for (const dialogue of updates.dialogues) {
         if (dialogue.speakerId) {
           const character = await ctx.db.get(dialogue.speakerId);
           if (!character) {
-            throw new Error(`Character with ID ${dialogue.speakerId} not found`);
+            throw new Error(
+              `Character with ID ${dialogue.speakerId} not found`
+            );
           }
           if (character.novel !== chapter.novel) {
-            throw new Error(`Character ${character.name} does not belong to ${chapter.novel}`);
+            throw new Error(
+              `Character ${character.name} does not belong to ${chapter.novel}`
+            );
           }
         }
       }
     }
 
-    // Filter out undefined values
+    // --- Filter out undefined values ---
     const filteredUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== undefined)
     );
 
+    // --- Add or update the updatedAt timestamp ---
+    filteredUpdates.updatedAt = new Date().toISOString();
+
+    // --- Apply updates to DB ---
     await ctx.db.patch(chapterId, filteredUpdates);
+
     return chapterId;
   },
 });
@@ -312,7 +371,9 @@ export const deleteChapter = mutation({
       .collect();
 
     if (levels.length > 0) {
-      throw new Error('Cannot delete chapter with existing levels. Delete all levels first.');
+      throw new Error(
+        'Cannot delete chapter with existing levels. Delete all levels first.'
+      );
     }
 
     await ctx.db.delete(args.chapterId);

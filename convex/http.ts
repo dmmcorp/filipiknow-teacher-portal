@@ -218,4 +218,5 @@ http.route({
   method: 'POST',
   handler: recordStudentScore,
 });
+
 export default http;

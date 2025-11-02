@@ -41,11 +41,9 @@ const schema = defineSchema({
         sceneNumber: v.number(), // e.g. 1, 2, 3
         speakerId: v.optional(v.id('characters')),
         text: v.string(),
-        position: v.optional(v.union(
-          v.literal('left'),
-          v.literal('center'),
-          v.literal('right')
-        )), // Character position when speaking (default: left)
+        position: v.optional(
+          v.union(v.literal('left'), v.literal('center'), v.literal('right'))
+        ), // Character position when speaking (default: left)
         highlighted_word: v.optional(
           v.object({
             word: v.string(), // e.g. "Maria Clara"
@@ -56,7 +54,8 @@ const schema = defineSchema({
       })
     ),
     bg_image: v.optional(v.string()),
-    summary: v.string()
+    summary: v.string(),
+    updatedAt: v.optional(v.string()),
   })
     .index('by_novel', ['novel'])
     .index('by_novel_chapter', ['novel', 'chapter']),
@@ -122,6 +121,7 @@ const schema = defineSchema({
     current_level: v.number(), // e.g. level 2
     completed: v.number(), // e.g. 0, 1, 2, 3, 4, 5
     total_points: v.optional(v.number()), // e.g. 150
+    updatedAt: v.optional(v.string()),
   }).index('by_studentId', ['studentId']),
 
   games: defineTable({
