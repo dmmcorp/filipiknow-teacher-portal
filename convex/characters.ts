@@ -11,11 +11,9 @@ export const getCharacterData = internalQuery({
         sceneNumber: v.number(), // e.g. 1, 2, 3
         speakerId: v.optional(v.id('characters')),
         text: v.string(),
-        position: v.optional(v.union(
-          v.literal('left'),
-          v.literal('center'),
-          v.literal('right')
-        )), // Character position when speaking
+        position: v.optional(
+          v.union(v.literal('left'), v.literal('center'), v.literal('right'))
+        ), // Character position when speaking
         highlighted_word: v.optional(
           v.object({
             word: v.string(), // e.g. "Maria Clara"
@@ -33,8 +31,8 @@ export const getCharacterData = internalQuery({
         if (!dialogue.speakerId) {
           const bgImgUrl = dialogue.scene_bg_image
             ? await ctx.storage.getUrl(
-              dialogue.scene_bg_image as Id<'_storage'>
-            )
+                dialogue.scene_bg_image as Id<'_storage'>
+              )
             : '';
           return {
             ...dialogue,
@@ -74,16 +72,17 @@ export const getCharacterData = internalQuery({
 
 export const getCharacters = query({
   args: {
-    novel: v.optional(v.union(
-      v.literal('Noli me tangere'),
-      v.literal('El Filibusterismo')
-    )),
+    novel: v.optional(
+      v.union(v.literal('Noli me tangere'), v.literal('El Filibusterismo'))
+    ),
   },
   handler: async (ctx, args) => {
     let charactersQuery = ctx.db.query('characters');
 
     if (args.novel) {
-      charactersQuery = charactersQuery.filter((q) => q.eq(q.field('novel'), args.novel));
+      charactersQuery = charactersQuery.filter((q) =>
+        q.eq(q.field('novel'), args.novel)
+      );
     }
 
     const characters = await charactersQuery.collect();
@@ -96,7 +95,9 @@ export const getCharacters = query({
         } else {
           // It's a storage ID, get the URL
           try {
-            const url = await ctx.storage.getUrl(character.image as Id<'_storage'>);
+            const url = await ctx.storage.getUrl(
+              character.image as Id<'_storage'>
+            );
             imgUrl = url || '';
           } catch (error) {
             console.error('Error getting storage URL:', error);
@@ -144,10 +145,9 @@ export const updateCharacter = mutation({
     characterId: v.id('characters'),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    novel: v.optional(v.union(
-      v.literal('Noli me tangere'),
-      v.literal('El Filibusterismo')
-    )),
+    novel: v.optional(
+      v.union(v.literal('Noli me tangere'), v.literal('El Filibusterismo'))
+    ),
     image: v.optional(v.string()),
     role: v.optional(v.string()),
     unlocked: v.optional(v.boolean()),
@@ -208,7 +208,9 @@ export const getCharacterById = query({
       } else {
         // It's a storage ID, get the URL
         try {
-          const url = await ctx.storage.getUrl(character.image as Id<'_storage'>);
+          const url = await ctx.storage.getUrl(
+            character.image as Id<'_storage'>
+          );
           imgUrl = url || '';
         } catch (error) {
           console.error('Error getting storage URL:', error);

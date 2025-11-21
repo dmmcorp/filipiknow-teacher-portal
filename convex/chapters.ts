@@ -194,13 +194,23 @@ export const getChapterById = query({
       .query('levels')
       .withIndex('by_chapterId', (q) => q.eq('chapterId', args.chapterId))
       .collect();
+
     const scenes: SceneTypes[] = await ctx.runQuery(
       internal.characters.getCharacterData,
       {
         dialogues: chapter.dialogues,
       }
     );
-    const characters = [...new Set(scenes.map((scene) => scene.speakerId))];
+
+    // Filter out undefined or null speakerIds
+    const characters = [
+      ...new Set(
+        scenes
+          .map((scene) => scene.speakerId)
+          .filter((id): id is Id<'characters'> => Boolean(id))
+      ),
+    ];
+
     return {
       ...chapter,
       bg_image: bgImageUrl, // Return the URL instead of storage ID
